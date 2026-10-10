@@ -187,7 +187,9 @@ mark{background:color-mix(in srgb,var(--accent) 25%,transparent);color:inherit;b
 
 /* sync, mail */
 #syncchip{margin-left:auto}
-#syncchip[hidden]{display:none}
+#syncchip[hidden],#dirchip[hidden]{display:none}
+#dirchip{margin-left:auto}
+#dirchip:not([hidden])+#syncchip{margin-left:0}
 .msg-row{display:block;padding:10px 4px;border-bottom:1px solid var(--border);color:var(--text)}
 .msg-row:last-child{border-bottom:0}
 .msg-row:hover{background:var(--panel2);text-decoration:none}
@@ -225,7 +227,7 @@ main{padding-bottom:max(60px,env(safe-area-inset-bottom))}
   .dl>.k{border-bottom:0;padding-bottom:0}
   /* 16px verhindert, dass Safari auf dem iPhone in Felder hineinzoomt */
   input,select,textarea,.form input,.form select,.form textarea{font-size:16px !important}
-  #syncchip span{display:none}
+  #syncchip span,#dirchip span{display:none}
 }
 </style>
 </head>
@@ -236,6 +238,7 @@ main{padding-bottom:max(60px,env(safe-area-inset-bottom))}
     <div class="topbar">
       <button class="btn sm menu-btn" data-act="toggle-nav" aria-label="Menü">☰</button>
       <div class="searchwrap"><input id="q" type="search" placeholder="Alles durchsuchen…  ( / )" autocomplete="off"></div>
+      <button class="btn sm" id="dirchip" data-act="dir-allow" hidden title="PC-Ordner: Zugriff bestätigen">📁 <span>PC-Ordner verbinden</span></button>
       <a class="btn sm" id="syncchip" href="#/sync" hidden></a>
     </div>
     <main id="main"></main>
@@ -677,7 +680,7 @@ const dbDel = async (name, k) => db ? req(store(name, 'readwrite').delete(k)) : 
 const dbClear = async name => db ? req(store(name, 'readwrite').clear()) : mem[name].clear();
 const filesFor = async entryId => db ? req(store('files').index('entryId').getAll(entryId)) : [...mem.files.values()].filter(f => f.entryId === entryId);
 /* Einstellungen, die zwischen Geräten synchronisiert werden; Schlüssel mit "_" bleiben nur auf diesem Gerät */
-const SYNCED_META = ['name', 'currency', 'requests', 'senderPrefs'];
+const SYNCED_META = ['name', 'currency', 'requests', 'senderPrefs', 'jarvisShare'];
 async function setMeta(key, value) {
   state.meta[key] = value;
   await dbPut('meta', { key, value });
@@ -688,7 +691,7 @@ async function setMeta(key, value) {
   }
 }
 const clean = ({ _hay, _hayAt, ...e }) => e;
-async function saveEntry(e) { e.updated = new Date().toISOString(); e._hay = null; await dbPut('entries', clean(e)); scheduleSync(); }
+async function saveEntry(e) { e.updated = new Date().toISOString(); e._hay = null; await dbPut('entries', clean(e)); scheduleSync(); scheduleExtras(); }
 /* Löschungen merken, damit andere Geräte beim Synchronisieren dasselbe löschen */
 async function tombstone(kind, ids) {
   if (!ids.length) return;
@@ -869,6 +872,7 @@ function renderSidebar(active) {
       ${link('#/mail', '✉️', 'E-Mail', 'mail')}
       ${link('#/senders', '📇', 'Absender', 'senders')}
       ${link('#/sync', '📱', 'Handy & Sync', 'sync')}
+      ${link('#/jarvis', '🤝', 'Jarvis & PC-Ordner', 'jarvis')}
       ${link('#/request', '✨', 'Neues Thema planen', 'request')}
       ${link('#/backup', '💾', 'Backup & Einstellungen', 'backup')}
     </nav>`;
@@ -906,6 +910,7 @@ async function route() {
     else if (a === 'mail') { active = 'mail'; renderSidebar(active); b ? await viewMessage(b) : await viewMail(q); }
     else if (a === 'sync') { active = 'sync'; viewSync(); }
     else if (a === 'senders') { active = 'senders'; viewSenders(); }
+    else if (a === 'jarvis') { active = 'jarvis'; viewJarvis(); }
     else if (a === 'backup') { active = 'backup'; viewBackup(); }
     else { main.innerHTML = `<div class="card empty"><div class="big">🤷</div><p>Diese Seite gibt es nicht (mehr).</p><a class="btn" href="#/">Zur Übersicht</a></div>`; }
   } catch (err) {
@@ -1515,7 +1520,7 @@ async function deleteEntry(id) {
   await tombstone('entry', [id]);
   await tombstone('file', files.map(f => f.id));
   state.entries = state.entries.filter(x => x.id !== id);
-  scheduleSync();
+  scheduleSync(); scheduleExtras();
   toast('Gelöscht');
   go('#/topic/' + e.topic);
 }
@@ -1737,7 +1742,7 @@ async function doImport(replace) {
   }
   for (const [k, v] of Object.entries(json.meta || {})) if (!k.startsWith('_') && (replace || state.meta[k] === undefined)) await setMeta(k, v);
   pendingImport = null;
-  scheduleSync();
+  scheduleSync(); scheduleExtras();
   toast(`${touched.size} Einträge importiert ✓`);
   go('#/');
 }
@@ -2042,6 +2047,7 @@ async function syncOnce() {
     await d.upload(SYNC_FILE, await encryptBytes(key, TE.encode(JSON.stringify({ ...payload, savedAt: now }))), item?.eTag);
   }
   // mit neuen Daten neu anzeigen, aber nie während ein Formular offen ist
+  if (changed) scheduleExtras(1500);
   if (changed && !/^#\/(edit|new)\//.test(currentRoute)) route();
 }
 
@@ -2412,6 +2418,284 @@ function viewSenders() {
 }
 
 /* =====================================================================
+   EINTRÄGE ALS TEXT (für PC-Ordner und Jarvis)
+   ===================================================================== */
+function plainValue(f, v, d) {
+  if (v === '' || v == null || v === false || (Array.isArray(v) && !v.length)) return '';
+  switch (f.type) {
+    case 'date': return noYear(v) ? fmtDate(v) : `${fmtDate(v)} (${v})`;
+    case 'money': return fmtMoney(v);
+    case 'number': return v + (f.unit ? ' ' + f.unit : '');
+    case 'checkbox': return 'Ja';
+    case 'country': return COUNTRIES[v]?.name || v;
+    case 'select': { const o = (optionsOf(f, d) || []).find(o => optVal(o) === v); return o ? optLabel(o) : L(v); }
+    case 'rating': return v + '/5';
+    case 'progress': return v + '%';
+    case 'link': return v.map(byId).filter(Boolean).map(title).join(', ');
+    case 'group': return v.map(r => f.fields.map(sf => { const x = plainValue(sf, r[sf.key], d); return x ? `${sf.label}: ${x}` : ''; }).filter(Boolean).join(', ')).filter(Boolean).join(' | ');
+    default: return String(v);
+  }
+}
+function entryFields(e) {
+  const t = TOPIC[e.topic];
+  return t.fields.filter(f => !['custom', 'hidden'].includes(f.type) && visible(f, e.data))
+    .map(f => ({ label: lbl(f, e.data), value: plainValue(f, e.data[f.key], e.data) })).filter(x => x.value);
+}
+function entryMarkdown(e, files) {
+  const t = TOPIC[e.topic];
+  const lines = [`# ${title(e)}`, '', `*${t.name}* · zuletzt geändert ${new Date(e.updated).toLocaleString(LOCALE)}`, '',
+    '> Diese Datei schreibt Lifebook automatisch. Änderungen bitte in Lifebook machen. Neue Dateien kannst du einfach in diesen Ordner legen: Lifebook übernimmt sie als Anhang.', ''];
+  for (const { label, value } of entryFields(e)) lines.push(`- **${label}:** ${value.replace(/\n/g, '\n  ')}`);
+  if ((e.tags || []).length) lines.push('', '**Tags:** ' + e.tags.map(x => '#' + x).join(' '));
+  const rel = (e.related || []).map(byId).filter(Boolean);
+  if (rel.length) lines.push('', '**Verknüpft mit:** ' + rel.map(x => `${title(x)} (${TOPIC[x.topic].name})`).join(', '));
+  if (files.length) lines.push('', '## Anhänge', ...files.map(f => `- ${f.name} (${fmtSize(f.size)})`));
+  return lines.join('\n') + '\n';
+}
+
+/* =====================================================================
+   PC-ORDNER: lesbare Kopie aller Einträge und Anhänge auf dem PC
+   (nur Chrome/Edge am Computer; der Ordner verlässt den PC nie)
+   ===================================================================== */
+const canPickFolder = () => 'showDirectoryPicker' in window;
+const safeName = s => String(s || '').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '').replace(/\s+/g, ' ').replace(/[. ]+$/, '').trim().slice(0, 80) || 'Ohne Titel';
+const EXT_TYPES = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', heic: 'image/heic', gif: 'image/gif', webp: 'image/webp', txt: 'text/plain', md: 'text/markdown', csv: 'text/csv', json: 'application/json', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', eml: 'message/rfc822' };
+const guessType = n => EXT_TYPES[(String(n).split('.').pop() || '').toLowerCase()] || 'application/octet-stream';
+let dirState = { perm: 'none', running: false, again: false, error: '' };
+async function dirPermission(request = false) {
+  const h = state.meta._dirHandle; if (!h) return 'none';
+  try {
+    let p = h.queryPermission ? await h.queryPermission({ mode: 'readwrite' }) : 'granted';
+    if (p !== 'granted' && request) p = await h.requestPermission({ mode: 'readwrite' });
+    return p;
+  } catch { return 'denied'; }
+}
+function renderDirChip() {
+  const el = $('#dirchip'); if (!el) return;
+  el.hidden = !(state.meta._dirHandle && dirState.perm !== 'granted' && canPickFolder());
+}
+async function chooseFolder() {
+  try {
+    const h = await window.showDirectoryPicker({ id: 'lifebook', mode: 'readwrite', startIn: 'documents' });
+    await setMeta('_dirHandle', h); await setMeta('_mirror', { entries: {} });
+    dirState.perm = await dirPermission(true);
+    renderDirChip();
+    toast('PC-Ordner verbunden. Lifebook schreibt jetzt alle Einträge hinein…');
+    await mirrorNow();
+  } catch (e) { if (e.name !== 'AbortError') toast('Ordner konnte nicht verbunden werden: ' + e.message); }
+  if (currentRoute === '#/jarvis') viewJarvis();
+}
+async function fileExists(dir, name) { try { await dir.getFileHandle(name); return true; } catch { return false; } }
+async function writeDiskFile(dir, name, data) {
+  const fh = await dir.getFileHandle(name, { create: true });
+  const w = await fh.createWritable(); await w.write(data); await w.close();
+}
+function uniqueName(name, taken) {
+  if (!taken.includes(name)) return name;
+  const m = name.match(/^(.*?)(\.[^.]+)?$/); let i = 2;
+  while (taken.includes(`${m[1]} (${i})${m[2] || ''}`)) i++;
+  return `${m[1]} (${i})${m[2] || ''}`;
+}
+async function mirrorNow() {
+  const root = state.meta._dirHandle;
+  if (!root) return;
+  dirState.perm = await dirPermission(); renderDirChip();
+  if (dirState.perm !== 'granted') return;
+  if (dirState.running) { dirState.again = true; return; }
+  dirState.running = true; dirState.error = '';
+  let picked = 0; const pickedFor = new Set();
+  try {
+    const man = structuredClone(state.meta._mirror || { entries: {} });
+    const off = state.meta._mirrorOff || {};
+    const seen = new Set();
+    for (const t of TOPICS.filter(t => !off[t.id])) {
+      const list = entriesOf(t.id);
+      if (!list.length) continue;
+      const tdir = await root.getDirectoryHandle(safeName(t.name), { create: true });
+      for (const e of list) {
+        seen.add(e.id);
+        // der Ordnername bleibt stabil, auch wenn der Titel später ändert
+        const m = man.entries[e.id] || { folder: `${safeName(title(e))} (${e.id.slice(-4)})`, topic: t.id, files: {}, written: '' };
+        const edir = await tdir.getDirectoryHandle(m.folder, { create: true });
+        // 1. neue Dateien übernehmen, die du selbst in den Ordner gelegt hast
+        const known = Object.values(m.files);
+        for await (const [name, h] of edir.entries()) {
+          if (h.kind !== 'file' || name === 'Eintrag.md' || known.includes(name) || /^(~\$|\.)|\.(tmp|crdownload|part)$/i.test(name)) continue;
+          const file = await h.getFile();
+          if (file.size > 25 * 1048576) continue;
+          const id = uid();
+          await dbPut('files', { id, entryId: e.id, name, type: file.type || guessType(name), size: file.size, blob: file, added: new Date().toISOString() });
+          m.files[id] = name; picked++; pickedFor.add(e);
+          e.fileCount = (e.fileCount || 0) + 1;
+        }
+        // 2. Anhänge aus Lifebook auf den PC schreiben (auch wieder, falls dort gelöscht)
+        const efiles = await filesFor(e.id);
+        for (const f of efiles) {
+          if (m.files[f.id] && await fileExists(edir, m.files[f.id])) continue;
+          const name = m.files[f.id] || uniqueName(safeName(f.name), Object.values(m.files));
+          await writeDiskFile(edir, name, f.blob); m.files[f.id] = name;
+        }
+        // 3. Anhänge, die in Lifebook gelöscht wurden, auch auf dem PC entfernen
+        for (const [fid, name] of Object.entries(m.files)) {
+          if (efiles.some(f => f.id === fid)) continue;
+          try { await edir.removeEntry(name); } catch { }
+          delete m.files[fid];
+        }
+        // 4. Eintrag.md nur bei Änderungen neu schreiben
+        const stamp = e.updated + '|' + Object.values(m.files).sort().join('/');
+        if (m.written !== stamp || !(await fileExists(edir, 'Eintrag.md'))) { await writeDiskFile(edir, 'Eintrag.md', entryMarkdown(e, efiles)); m.written = stamp; }
+        man.entries[e.id] = m;
+      }
+    }
+    // gelöschte Einträge (oder abgeschaltete Themen): Ordner entfernen
+    for (const [id, m] of Object.entries(man.entries)) {
+      if (seen.has(id)) continue;
+      try { const tdir = await root.getDirectoryHandle(safeName(TOPIC[m.topic]?.name), { create: false }); await tdir.removeEntry(m.folder, { recursive: true }); } catch { }
+      delete man.entries[id];
+    }
+    man.last = new Date().toISOString();
+    await setMeta('_mirror', man);
+    if (picked) {
+      toast(`${picked} ${picked === 1 ? 'Datei' : 'Dateien'} aus dem PC-Ordner übernommen ✓`);
+      // geänderte Einträge speichern (synchronisiert die neuen Anhänge auch aufs iPhone);
+      // den Zeitstempel im Manifest nachführen, damit Eintrag.md nicht unnötig neu geschrieben wird
+      for (const e of pickedFor) {
+        await saveEntry(e);
+        const m = man.entries[e.id]; if (m) m.written = e.updated + '|' + Object.values(m.files).sort().join('/');
+      }
+      await setMeta('_mirror', man);
+    }
+  } catch (e) {
+    console.error(e); dirState.error = e.message || String(e);
+  } finally {
+    dirState.running = false;
+    if (dirState.again) { dirState.again = false; setTimeout(mirrorNow, 500); }
+    if (currentRoute === '#/jarvis') viewJarvis();
+  }
+}
+
+/* =====================================================================
+   MIT JARVIS TEILEN: freigegebene Themen samt Anhängen an den eigenen
+   Connector senden, damit Claude sie nachschlagen kann (nur lesen)
+   ===================================================================== */
+const JARVIS_URL = 'https://lifebook-mail.trs779rv2d.workers.dev';
+let jarvisState = { s: 'idle', msg: '' }, jarvisRunning = null, extrasTimer = null;
+const jarvisCfg = () => state.meta.jarvisShare || { enabled: false, off: {} };
+async function jarvisFetch(path, opt = {}) {
+  const tok = await getToken();
+  const r = await fetch((window.__jarvisUrl || JARVIS_URL) + path, { ...opt, headers: { Authorization: 'Bearer ' + tok, ...(opt.headers || {}) } });
+  if (r.status === 401) throw new Error('Der Connector hat die Anmeldung abgelehnt. Ist das richtige Microsoft-Konto verbunden?');
+  if (r.status === 403) throw new Error('Der Connector kennt diese Lifebook-Adresse nicht.');
+  if (!r.ok) throw new Error('Connector-Fehler ' + r.status);
+  return r;
+}
+async function jarvisPush(force = false) {
+  const cfg = jarvisCfg();
+  if (!cfg.enabled || !state.meta._account) return;
+  if (jarvisRunning) return jarvisRunning;
+  jarvisRunning = (async () => {
+    jarvisState = { s: 'pushing', msg: '' };
+    try {
+      const topics = TOPICS.filter(t => !cfg.off?.[t.id]);
+      const entries = state.entries.filter(e => topics.some(t => t.id === e.topic));
+      const ids = new Set(entries.map(e => e.id));
+      const files = (await dbAll('files')).filter(f => ids.has(f.entryId));
+      const snapshot = {
+        v: 1, owner: state.meta._account?.name || '', topics: topics.map(t => ({ id: t.id, name: t.name })),
+        entries: entries.map(e => ({
+          id: e.id, topic: e.topic, topicName: TOPIC[e.topic].name, title: title(e), updated: e.updated,
+          fields: entryFields(e), tags: e.tags || [],
+          related: (e.related || []).map(byId).filter(Boolean).map(x => ({ id: x.id, title: title(x), topic: TOPIC[x.topic].name })),
+          attachments: files.filter(f => f.entryId === e.id).map(f => ({ file_id: f.id, name: f.name, type: f.type, size_kb: Math.round(f.size / 1024) })),
+        })),
+      };
+      const body = JSON.stringify(snapshot);
+      const hash = await crypto.subtle.digest('SHA-256', TE.encode(body + '|' + files.map(f => f.id).join(','))).then(b => toB64(b));
+      if (force || hash !== state.meta._jarvisHash) {
+        await jarvisFetch('/lifebook/data', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...snapshot, pushedAt: new Date().toISOString() }) });
+        const remote = (await (await jarvisFetch('/lifebook/files')).json()).ids || [];
+        for (const f of files) {
+          if (remote.includes(f.id) || f.size > 20 * 1048576) continue;
+          await jarvisFetch('/lifebook/file/' + f.id, { method: 'PUT', headers: { 'Content-Type': f.type || 'application/octet-stream', 'X-File-Name': encodeURIComponent(f.name), 'X-Entry-Id': f.entryId }, body: f.blob });
+        }
+        const want = new Set(files.map(f => f.id));
+        for (const id of remote) if (!want.has(id)) await jarvisFetch('/lifebook/file/' + id, { method: 'DELETE' });
+        await setMeta('_jarvisHash', hash);
+      }
+      await setMeta('_jarvisLast', new Date().toISOString());
+      jarvisState = { s: 'idle', msg: '' };
+    } catch (e) {
+      console.error(e);
+      jarvisState = e instanceof NeedLogin ? { s: 'login', msg: e.message } : { s: 'error', msg: e.message || String(e) };
+    } finally {
+      jarvisRunning = null;
+      if (currentRoute === '#/jarvis') viewJarvis();
+    }
+  })();
+  return jarvisRunning;
+}
+async function jarvisDeleteAll() {
+  if (!await ask('Alle mit Jarvis geteilten Lifebook-Daten und Anhänge beim Connector löschen? In Lifebook bleibt alles erhalten.', 'Bei Jarvis löschen')) return;
+  try {
+    await jarvisFetch('/lifebook/all', { method: 'DELETE' });
+    await setMeta('jarvisShare', { ...jarvisCfg(), enabled: false });
+    await setMeta('_jarvisHash', null);
+    toast('Bei Jarvis gelöscht ✓');
+  } catch (e) { toast(e.message); }
+  viewJarvis();
+}
+/* nach jeder Änderung: PC-Ordner und Jarvis aktualisieren (gebündelt) */
+function scheduleExtras(delay = 4000) {
+  clearTimeout(extrasTimer);
+  extrasTimer = setTimeout(async () => { await mirrorNow(); await jarvisPush(); }, delay);
+}
+
+function viewJarvis() {
+  const cfg = jarvisCfg(), acc = state.meta._account, man = state.meta._mirror;
+  const off = state.meta._mirrorOff || {};
+  const topicChecks = (name, isOff) => `<div class="checks">${TOPICS.map(t => `<label class="check"><input type="checkbox" data-${name}="${t.id}" ${isOff[t.id] ? '' : 'checked'}> ${t.icon} ${h(t.name)}</label>`).join('')}</div>`;
+  const dirCard = !canPickFolder()
+    ? `<p class="muted small" style="margin:0">Auf diesem Gerät nicht verfügbar (das geht nur mit Chrome oder Edge am Computer). Dateien, die du hier hochlädst, landen über die Synchronisierung im PC-Ordner, sobald Lifebook am PC offen ist.</p>`
+    : !state.meta._dirHandle
+      ? `<p class="muted small">Wähle einen Ordner auf deinem PC, z.B. <b>D:\\Lifebook</b>. Am besten <b>nicht</b> innerhalb deines OneDrive-Ordners, damit die lesbaren Kopien nicht in die Cloud gelangen.</p>
+         <button class="btn primary" data-act="dir-choose">📁 Ordner wählen</button>`
+      : `<p style="margin:0 0 8px">📁 Verbunden mit Ordner <b>${h(state.meta._dirHandle.name)}</b>
+           ${dirState.perm === 'granted' ? `<span class="ok">· aktiv</span>` : `<span class="warn">· Zugriff muss bestätigt werden</span>`}</p>
+         <p class="small muted" style="margin:0 0 10px">${dirState.running ? '⏳ Wird abgeglichen…' : man?.last ? 'Zuletzt abgeglichen ' + h(timeAgo(man.last)) : 'Noch nicht abgeglichen'}${dirState.error ? ` · <span class="bad">⚠️ ${h(dirState.error)}</span>` : ''}</p>
+         <div class="actions">
+           ${dirState.perm === 'granted' ? `<button class="btn primary" data-act="dir-sync">🔄 Jetzt abgleichen</button>` : `<button class="btn primary" data-act="dir-allow">✅ Zugriff erlauben</button>`}
+           <button class="btn sm" data-act="dir-choose">Anderen Ordner wählen</button>
+           <button class="btn sm danger" data-act="dir-forget">Trennen</button>
+         </div>
+         <p class="small muted">Chrome fragt nach einem Neustart evtl. nochmals nach dem Zugriff. Wähle dann <b>„Bei jedem Besuch erlauben"</b>, falls angeboten.</p>
+         <details style="margin-top:10px"><summary class="small" style="cursor:pointer">Welche Themen in den Ordner?</summary><div style="margin-top:8px">${topicChecks('mirror', off)}</div></details>`;
+  main.innerHTML = `
+    <div class="page-head"><div><h1>🤝 Jarvis & PC-Ordner</h1><p class="muted">Hier legst du fest, wo deine Einträge und Dokumente zusätzlich verfügbar sind, damit Claude (Jarvis) damit arbeiten kann.</p></div></div>
+    <div class="stack">
+      <div class="card">
+        <h2>📁 PC-Ordner</h2>
+        <p class="small muted" style="margin-top:-6px">Lifebook legt jeden Eintrag als Ordner mit <b>Eintrag.md</b> und allen Anhängen ab. Dateien, die du selbst in einen Eintrags-Ordner legst, übernimmt Lifebook automatisch als Anhang. Der Ordner verlässt deinen PC nie; Claude liest ihn, wenn du auf diesem PC mit Claude arbeitest.</p>
+        ${dirCard}
+      </div>
+      <div class="card">
+        <h2>🤝 Mit Jarvis teilen</h2>
+        <p class="small muted" style="margin-top:-6px">Die freigegebenen Themen samt Anhängen gehen verschlüsselt an <b>deinen eigenen Connector</b>. Claude kann sie dann in jedem Chat nachschlagen, auch auf dem iPhone, aber nicht ändern. Nur dein Lifebook mit deinem Microsoft-Konto darf dort Daten ablegen.</p>
+        ${!acc ? `<p class="warn" style="margin:0">Zuerst unter <a href="#/sync">Handy & Sync</a> das Microsoft-Konto verbinden.</p>` : `
+          <label class="check" style="font-weight:600;margin-bottom:10px"><input type="checkbox" data-act-check="jarvis-enable" ${cfg.enabled ? 'checked' : ''}> Lifebook mit Jarvis teilen</label>
+          ${cfg.enabled ? `
+            <p class="small" style="margin:0 0 10px">${jarvisState.s === 'pushing' ? '⏳ Wird geteilt…' : jarvisState.s === 'error' ? `<span class="bad">⚠️ ${h(jarvisState.msg)}</span>` : jarvisState.s === 'login' ? `<span class="warn">🔑 Microsoft-Anmeldung abgelaufen.</span> <button class="btn sm" data-act="reconnect">Neu verbinden</button>` : state.meta._jarvisLast ? '✅ Zuletzt geteilt ' + h(timeAgo(state.meta._jarvisLast)) : 'Noch nicht geteilt'}</p>
+            <div class="field"><span class="small"><b>Geteilte Themen</b> (abwählen, um ein Thema bei Jarvis zu entfernen)</span>${topicChecks('share', cfg.off || {})}</div>
+            <div class="actions" style="margin-top:10px"><button class="btn primary" data-act="jarvis-push">🔄 Jetzt teilen</button><button class="btn sm danger" data-act="jarvis-delete">Alles bei Jarvis löschen</button></div>`
+          : ''}`}
+      </div>
+      <div class="card">
+        <h2>So fragst du Jarvis</h2>
+        <p class="small muted" style="margin:0">In einem Claude-Chat mit eingeschaltetem Connector „Lifebook Mail", z.B.: <i>„Welche Franchise habe ich bei Assura?"</i>, <i>„Lies meinen Fitnessvertrag und sag mir die Kündigungsfrist"</i> oder <i>„Welche Abos laufen dieses Jahr aus?"</i>. Am PC kann Claude zusätzlich direkt im PC-Ordner lesen.</p>
+      </div>
+    </div>`;
+}
+
+/* =====================================================================
    KONTAKTE: .vcf-Datei aus der iPhone-App „Kontakte" importieren
    ===================================================================== */
 function parseVCF(text) {
@@ -2547,6 +2831,12 @@ document.addEventListener('click', async ev => {
   else if (act === 'reconnect') signIn();
   else if (act === 'snd-scan') { if (el.dataset.full && !await ask('Postfach komplett neu analysieren? Deine eigenen Einteilungen und Abmeldungen bleiben erhalten.', 'Neu analysieren')) return; scanSenders(!!el.dataset.full); senderProgress('Analyse läuft…'); }
   else if (act === 'snd-unsub') unsubscribeSender(el.dataset.a);
+  else if (act === 'dir-choose') chooseFolder();
+  else if (act === 'dir-allow') { dirState.perm = await dirPermission(true); renderDirChip(); if (dirState.perm === 'granted') { toast('PC-Ordner verbunden ✓'); mirrorNow(); } else if (currentRoute === '#/jarvis') viewJarvis(); }
+  else if (act === 'dir-sync') mirrorNow();
+  else if (act === 'dir-forget') { if (await ask('PC-Ordner trennen? Die Dateien im Ordner bleiben, werden aber nicht mehr aktualisiert.', 'Trennen')) { await setMeta('_dirHandle', null); await setMeta('_mirror', null); dirState.perm = 'none'; renderDirChip(); viewJarvis(); } }
+  else if (act === 'jarvis-push') jarvisPush(true);
+  else if (act === 'jarvis-delete') jarvisDeleteAll();
   else if (act === 'snd-filter') { senderView.f = el.dataset.f; senderView.limit = 150; renderSenderList(); }
   else if (act === 'snd-more') { senderView.limit += 150; renderSenderList(); }
   else if (act === 'req-create') createRequest();
@@ -2575,6 +2865,9 @@ document.addEventListener('change', ev => {
   if (t.id === 'importfile' && t.files[0]) readImport(t.files[0]);
   if (t.hasAttribute?.('data-rerender') && t.closest('#entryform')) rerenderForm();
   if (t.dataset?.sndCat) setSenderCat(t.dataset.sndCat, t.value);
+  if (t.dataset?.actCheck === 'jarvis-enable') { setMeta('jarvisShare', { ...jarvisCfg(), enabled: t.checked }).then(() => { if (t.checked) jarvisPush(true); viewJarvis(); }); }
+  if (t.dataset?.share) { const c = jarvisCfg(); const off = { ...(c.off || {}) }; if (t.checked) delete off[t.dataset.share]; else off[t.dataset.share] = true; setMeta('jarvisShare', { ...c, off }).then(() => jarvisPush(true)); }
+  if (t.dataset?.mirror) { const off = { ...(state.meta._mirrorOff || {}) }; if (t.checked) delete off[t.dataset.mirror]; else off[t.dataset.mirror] = true; setMeta('_mirrorOff', off).then(() => mirrorNow()); }
 });
 document.addEventListener('input', ev => {
   const t = ev.target;
@@ -2656,6 +2949,10 @@ window.addEventListener('unhandledrejection', ev => showError(ev.reason));
     if (document.visibilityState === 'visible' && Date.now() - new Date(state.meta._lastSync || 0) > 60000) syncNow();
   });
   window.addEventListener('online', () => syncNow());
+  // PC-Ordner und Jarvis: beim Start und wenn du zu Lifebook zurückkehrst (z.B. nach dem Ablegen einer Datei im Ordner)
+  dirState.perm = await dirPermission(); renderDirChip();
+  scheduleExtras(2500);
+  window.addEventListener('focus', () => scheduleExtras(1200));
 })();
 </script>
 </body>
