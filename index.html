@@ -292,7 +292,7 @@ const DE = {
   'National Insurance number': 'National Insurance Number', 'Passport card': 'Passkarte', "Driver's license": 'Führerschein',
   'State ID': 'State ID', 'Green card': 'Green Card', 'Social Security number': 'Social Security Number',
 };
-const L = v => DE[v] ?? v;
+const L = v => DE[v] ?? INS_NAMES[v] ?? v; // INS_NAMES (Versicherungsarten aller Länder) ist weiter unten definiert
 const LOCALE = 'de-CH';
 
 /* =====================================================================
@@ -428,6 +428,7 @@ const SUGGEST = {
   'Streaming & Media': ['Netflix', 'Spotify', 'Disney+', 'Apple TV+', 'Amazon Prime', 'YouTube Premium', 'Apple Music', 'DAZN'],
   'AI & Software': ['Anthropic (Claude)', 'OpenAI (ChatGPT)', 'Google One / Gemini', 'Microsoft 365', 'Adobe', 'Apple iCloud', 'Dropbox'],
 };
+const INS_NAMES = Object.fromEntries(Object.values(COUNTRIES).flatMap(c => c.insurance.map(i => [i.key, i.name])));
 const profileEntry = () => state.entries.find(e => e.topic === 'profile');
 const countryOf = d => COUNTRIES[d?.country] || COUNTRIES.OTHER;
 const myCountry = () => countryOf(profileEntry()?.data);
@@ -680,7 +681,7 @@ const dbDel = async (name, k) => db ? req(store(name, 'readwrite').delete(k)) : 
 const dbClear = async name => db ? req(store(name, 'readwrite').clear()) : mem[name].clear();
 const filesFor = async entryId => db ? req(store('files').index('entryId').getAll(entryId)) : [...mem.files.values()].filter(f => f.entryId === entryId);
 /* Einstellungen, die zwischen Geräten synchronisiert werden; Schlüssel mit "_" bleiben nur auf diesem Gerät */
-const SYNCED_META = ['name', 'currency', 'requests', 'senderPrefs', 'jarvisShare'];
+const SYNCED_META = ['name', 'currency', 'requests', 'senderPrefs', 'jarvisShare', 'jarvisInbox'];
 async function setMeta(key, value) {
   state.meta[key] = value;
   await dbPut('meta', { key, value });
@@ -872,6 +873,7 @@ function renderSidebar(active) {
       ${link('#/mail', '✉️', 'E-Mail', 'mail')}
       ${link('#/senders', '📇', 'Absender', 'senders')}
       ${link('#/sync', '📱', 'Handy & Sync', 'sync')}
+      ${link('#/vorschlaege', '🤖', 'Vorschläge von Jarvis', 'vorschlaege', (state.meta.jarvisInbox || []).length || '')}
       ${link('#/jarvis', '🤝', 'Jarvis & PC-Ordner', 'jarvis')}
       ${link('#/request', '✨', 'Neues Thema planen', 'request')}
       ${link('#/backup', '💾', 'Backup & Einstellungen', 'backup')}
@@ -911,6 +913,7 @@ async function route() {
     else if (a === 'sync') { active = 'sync'; viewSync(); }
     else if (a === 'senders') { active = 'senders'; viewSenders(); }
     else if (a === 'jarvis') { active = 'jarvis'; viewJarvis(); }
+    else if (a === 'vorschlaege') { active = 'vorschlaege'; viewSuggestions(); }
     else if (a === 'backup') { active = 'backup'; viewBackup(); }
     else { main.innerHTML = `<div class="card empty"><div class="big">🤷</div><p>Diese Seite gibt es nicht (mehr).</p><a class="btn" href="#/">Zur Übersicht</a></div>`; }
   } catch (err) {
@@ -972,6 +975,7 @@ function viewDashboard() {
   main.innerHTML = `
     <div class="page-head"><div><h1>${greet}${name ? ', ' + h(name) : ''} 👋</h1><p class="muted">${fmtDate(todayISO(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div></div>
     <div class="stack">
+      ${(state.meta.jarvisInbox || []).length ? `<div class="notice" style="background:var(--accent-soft);color:var(--text)"><span>🤖 Jarvis hat ${state.meta.jarvisInbox.length === 1 ? 'einen Vorschlag' : state.meta.jarvisInbox.length + ' Vorschläge'} für dich.</span><a class="btn sm primary" href="#/vorschlaege">Ansehen</a></div>` : ''}
       ${backupNotice()}
       ${insuranceWarning()}
       <div class="card">
@@ -1086,9 +1090,10 @@ function displayValue(f, v, d = {}) {
     case 'progress': return `<div style="display:flex;gap:10px;align-items:center"><div class="progress" style="flex:1;max-width:260px"><div style="width:${v}%"></div></div><b>${v}%</b></div>`;
     case 'link': return `<div class="chips">${v.map(byId).filter(Boolean).map(x => `<a class="chip" href="#/entry/${x.id}">${TOPIC[x.topic].icon} ${h(title(x))}</a>`).join('')}</div>`;
     case 'group': return v.map(r => `<div class="grow-view">${f.fields.map(sf => { const x = displayValue(sf, r[sf.key], d); return x ? `<span><span class="muted small">${h(sf.label)}:</span> ${x}</span>` : ''; }).join('')}</div>`).join('');
-    default: return h(v);
+    default: return linkify(h(v));
   }
 }
+const linkify = s => s.replace(/https?:\/\/[^\s<>"']+/g, u => { const clean = u.replace(/[.,;:)]+$/, ''); return `<a href="${clean}" target="_blank" rel="noopener">${clean} ↗</a>${u.slice(clean.length)}`; });
 
 async function viewEntry(e) {
   const t = TOPIC[e.topic];
@@ -2505,6 +2510,7 @@ async function mirrorNow() {
   dirState.running = true; dirState.error = '';
   let picked = 0; const pickedFor = new Set();
   try {
+    await readJarvisInbox(root);
     const man = structuredClone(state.meta._mirror || { entries: {} });
     const off = state.meta._mirrorOff || {};
     const seen = new Set();
@@ -2696,6 +2702,106 @@ function viewJarvis() {
 }
 
 /* =====================================================================
+   VORSCHLÄGE VON JARVIS
+   Claude legt Änderungsvorschläge als .json-Datei in den Ordner
+   "_Jarvis-Vorschläge" im PC-Ordner. Lifebook zeigt sie mit "bisher → neu"
+   an; gespeichert wird erst, wenn du auf "Übernehmen" klickst.
+   Format: { "action": "update", "entryId": "…", "data": { feld: wert },
+             "addTags": [], "removeTags": [], "reason": "…" }
+        oder { "action": "create", "topic": "contracts", "data": {…}, … }
+   ===================================================================== */
+const INBOX_DIR = '_Jarvis-Vorschläge';
+function validSuggestion(x) {
+  if (!x || typeof x !== 'object') return null;
+  const action = x.action === 'create' ? 'create' : 'update';
+  const topic = action === 'create' ? x.topic : byId(x.entryId)?.topic;
+  const t = TOPIC[topic];
+  if (!t) return null;
+  const data = {};
+  for (const [k, v] of Object.entries(x.data || {})) {
+    const f = t.fields.find(f => f.key === k && !['custom', 'hidden'].includes(f.type));
+    if (!f) continue; // unbekannte Felder werden ignoriert
+    if (['number', 'money', 'rating', 'progress'].includes(f.type)) { if (v === '' || Number.isFinite(Number(v))) data[k] = v === '' ? '' : Number(v); }
+    else if (f.type === 'link') { if (Array.isArray(v)) data[k] = v.filter(id => byId(id)).slice(0, 50); }
+    else if (f.type === 'group') { if (Array.isArray(v)) data[k] = v.filter(r => r && typeof r === 'object').slice(0, 50); }
+    else if (f.type === 'checkbox') data[k] = !!v;
+    else data[k] = String(v ?? '').slice(0, 20000);
+  }
+  const tagList = a => Array.isArray(a) ? a.map(s => String(s).toLowerCase().trim()).filter(Boolean).slice(0, 20) : [];
+  return {
+    id: uid(), action, entryId: action === 'update' ? x.entryId : null, topic, data,
+    addTags: tagList(x.addTags), removeTags: tagList(x.removeTags), reason: String(x.reason || '').slice(0, 2000), received: new Date().toISOString(),
+  };
+}
+async function readJarvisInbox(root) {
+  let dir; try { dir = await root.getDirectoryHandle(INBOX_DIR, { create: true }); } catch { return; }
+  const found = [];
+  for await (const [name, h] of dir.entries()) {
+    if (h.kind !== 'file' || !/\.json$/i.test(name)) continue;
+    try {
+      const parsed = JSON.parse(await (await h.getFile()).text());
+      for (const x of Array.isArray(parsed) ? parsed : [parsed]) { const v = validSuggestion(x); if (v) found.push(v); }
+      await dir.removeEntry(name);
+    } catch (e) { console.warn('Vorschlag nicht lesbar:', name, e); }
+  }
+  if (!found.length) return;
+  await setMeta('jarvisInbox', [...(state.meta.jarvisInbox || []), ...found]);
+  toast(`🤖 Jarvis hat ${found.length === 1 ? 'einen Vorschlag' : found.length + ' Vorschläge'} für dich`);
+  if (!/^#\/(edit|new)\//.test(currentRoute)) route();
+}
+function suggestionCard(s) {
+  const t = TOPIC[s.topic], e = s.entryId ? byId(s.entryId) : null;
+  if (!t) return '';
+  const merged = e ? { ...e.data, ...s.data } : s.data;
+  const rows = Object.entries(s.data).map(([k, v]) => {
+    const f = t.fields.find(f => f.key === k);
+    const oldV = e ? plainValue(f, e.data[k], e.data) : '', newV = plainValue(f, v, merged);
+    if (e && oldV === newV) return '';
+    return `<tr><td class="muted small" style="width:22%;vertical-align:top">${h(lbl(f, merged))}</td>
+      <td class="small" style="width:28%;vertical-align:top">${oldV ? `<s class="muted">${h(oldV).replace(/\n/g, '<br>')}</s>` : '<span class="muted">–</span>'}</td>
+      <td class="small" style="vertical-align:top">${newV ? linkify(h(newV)).replace(/\n/g, '<br>') : '<span class="muted">(leer)</span>'}</td></tr>`;
+  }).join('');
+  const tags = [...s.addTags.map(x => `<span class="chip tag">+ #${h(x)}</span>`), ...s.removeTags.filter(x => (e?.tags || []).includes(x)).map(x => `<span class="chip"><s>#${h(x)}</s></span>`)].join(' ');
+  return `<div class="card">
+    <div class="sec-head"><h2>${t.icon} ${s.action === 'create' ? 'Neuer Eintrag: ' : ''}${h(e ? title(e) : (s.data[t.titleField] || t.name))}</h2><span class="small muted">${h(timeAgo(s.received))}</span></div>
+    ${s.reason ? `<p class="small" style="margin:0 0 10px">🤖 ${h(s.reason)}</p>` : ''}
+    ${rows ? `<table class="tbl"><tr><td class="small muted"><b>Feld</b></td><td class="small muted"><b>Bisher</b></td><td class="small muted"><b>Neu</b></td></tr>${rows}</table>` : '<p class="muted small">Keine Änderungen an Feldern.</p>'}
+    ${tags ? `<div class="chips" style="margin-top:10px"><span class="small muted">Tags:</span> ${tags}</div>` : ''}
+    <div class="actions" style="margin-top:14px"><button class="btn primary" data-act="sug-apply" data-id="${s.id}">✅ Übernehmen</button><button class="btn" data-act="sug-drop" data-id="${s.id}">Verwerfen</button>${e ? `<a class="btn sm" href="#/entry/${e.id}">Eintrag ansehen</a>` : ''}</div>
+  </div>`;
+}
+function viewSuggestions() {
+  const list = state.meta.jarvisInbox || [];
+  main.innerHTML = `
+    <div class="page-head"><div><h1>🤖 Vorschläge von Jarvis</h1><p class="muted">Hier schlägt Jarvis (Claude) Änderungen an deinen Einträgen vor. Nichts wird gespeichert, bevor du auf „Übernehmen" klickst.</p></div></div>
+    ${list.length ? `<div class="stack">${list.map(suggestionCard).join('')}</div>` : `<div class="card empty"><div class="big">🤖</div><p>Keine offenen Vorschläge.</p></div>`}`;
+}
+async function applySuggestion(id) {
+  const list = state.meta.jarvisInbox || [], s = list.find(x => x.id === id);
+  if (!s) return;
+  let e;
+  if (s.action === 'update') {
+    e = byId(s.entryId);
+    if (!e) { toast('Diesen Eintrag gibt es nicht mehr'); return dropSuggestion(id, true); }
+    Object.assign(e.data, s.data);
+  } else {
+    const now = new Date().toISOString();
+    e = { id: uid(), topic: s.topic, data: { ...s.data }, tags: [], related: [], created: now, updated: now };
+    state.entries.push(e);
+  }
+  e.tags = [...new Set([...(e.tags || []).filter(x => !s.removeTags.includes(x)), ...s.addTags])];
+  await saveEntry(e);
+  await setMeta('jarvisInbox', list.filter(x => x.id !== id));
+  toast('Übernommen ✓');
+  go('#/entry/' + e.id);
+}
+async function dropSuggestion(id, silent = false) {
+  await setMeta('jarvisInbox', (state.meta.jarvisInbox || []).filter(x => x.id !== id));
+  if (!silent) toast('Verworfen');
+  route();
+}
+
+/* =====================================================================
    KONTAKTE: .vcf-Datei aus der iPhone-App „Kontakte" importieren
    ===================================================================== */
 function parseVCF(text) {
@@ -2836,6 +2942,8 @@ document.addEventListener('click', async ev => {
   else if (act === 'dir-sync') mirrorNow();
   else if (act === 'dir-forget') { if (await ask('PC-Ordner trennen? Die Dateien im Ordner bleiben, werden aber nicht mehr aktualisiert.', 'Trennen')) { await setMeta('_dirHandle', null); await setMeta('_mirror', null); dirState.perm = 'none'; renderDirChip(); viewJarvis(); } }
   else if (act === 'jarvis-push') jarvisPush(true);
+  else if (act === 'sug-apply') applySuggestion(el.dataset.id);
+  else if (act === 'sug-drop') dropSuggestion(el.dataset.id);
   else if (act === 'jarvis-delete') jarvisDeleteAll();
   else if (act === 'snd-filter') { senderView.f = el.dataset.f; senderView.limit = 150; renderSenderList(); }
   else if (act === 'snd-more') { senderView.limit += 150; renderSenderList(); }
