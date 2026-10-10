@@ -1,0 +1,2382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#3a68f0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lifebook">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" id="touchicon" href="">
+<title>Lifebook</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📘</text></svg>">
+<style>
+:root{
+  --bg:#f5f6f8;--panel:#fff;--panel2:#f0f2f5;--text:#1c2230;--muted:#687083;--border:#e2e5eb;
+  --accent:#3a68f0;--accent-soft:#e8eefe;--danger:#d14343;--danger-soft:#fdeaea;
+  --warn:#8a5a00;--warn-soft:#fff5dc;--ok:#1a8f4c;--ok-soft:#e3f6ea;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.07);--radius:12px;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#111419;--panel:#191d25;--panel2:#212633;--text:#e5e8ee;--muted:#98a1b1;--border:#2b3140;
+  --accent:#7096ff;--accent-soft:#232d4a;--danger:#ff7070;--danger-soft:#3a1d22;
+  --warn:#ffcd6b;--warn-soft:#352b12;--ok:#5fd394;--ok-soft:#15301f;--shadow:none;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+h1{font-size:24px;margin:0 0 4px;line-height:1.25}
+h2{font-size:17px;margin:0 0 12px}
+h3{font-size:15px;margin:0 0 8px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+button,input,select,textarea{font:inherit;color:inherit}
+
+/* layout */
+.app{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.sidebar{background:var(--panel);border-right:1px solid var(--border);padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;padding:4px 8px 16px}
+.nav-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:14px 10px 6px}
+.nav a{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;color:var(--text)}
+.nav a:hover{background:var(--panel2);text-decoration:none}
+.nav a.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .count{margin-left:auto;font-size:12px;color:var(--muted)}
+.content{min-width:0;display:flex;flex-direction:column}
+.topbar{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);display:flex;gap:10px;align-items:center;padding:12px 28px;border-bottom:1px solid var(--border)}
+.searchwrap{flex:1;max-width:560px;position:relative}
+.searchwrap input{width:100%;padding:9px 12px 9px 36px;border:1px solid var(--border);border-radius:10px;background:var(--panel)}
+.searchwrap::before{content:"🔍";position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;opacity:.7}
+.menu-btn{display:none}
+main{padding:24px 28px 60px;max-width:1100px;width:100%}
+
+/* components */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.stack>*+*{margin-top:16px}
+.grid{display:grid;gap:14px}
+.grid.cards{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.grid.tiles{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.sec-head h2{margin:0}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--panel);cursor:pointer;white-space:nowrap;color:var(--text)}
+.btn:hover{background:var(--panel2);text-decoration:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.danger{color:var(--danger)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.link-btn{border:0;background:none;color:var(--accent);cursor:pointer;padding:0;font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ticon{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;background:color-mix(in srgb,var(--c,#888) 18%,transparent);font-size:18px;flex:none}
+.ticon.lg{width:46px;height:46px;font-size:24px;border-radius:12px}
+.chip{display:inline-block;padding:1px 9px;border-radius:999px;font-size:12px;background:var(--panel2);border:1px solid var(--border);color:var(--text);white-space:nowrap}
+a.chip:hover{text-decoration:none;border-color:var(--accent)}
+.chip.tag{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.chip.mandatory{background:var(--danger-soft);color:var(--danger);border-color:transparent}
+.chip.conditional{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.chip.recommended{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.progress{height:7px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.progress>div{height:100%;background:var(--accent);border-radius:99px}
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty .big{font-size:40px}
+.notice{padding:12px 16px;border-radius:10px;background:var(--warn-soft);color:var(--warn);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.infobox{padding:12px 14px;border-radius:10px;background:var(--panel2);font-size:14px}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--danger)}
+
+/* entry cards */
+.ecard{display:block;color:var(--text);cursor:pointer;transition:border-color .15s}
+.ecard:hover{border-color:var(--accent);text-decoration:none}
+.ecard .t{font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis}
+.ecard .m{font-size:13px;color:var(--muted);margin-bottom:8px}
+.ecard .foot{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+
+/* tiles & stats */
+.tile{display:flex;gap:12px;align-items:center;color:var(--text)}
+.tile:hover{border-color:var(--accent);text-decoration:none}
+.stat{font-size:12px;color:var(--muted)}
+.stats{display:flex;gap:28px;flex-wrap:wrap}
+.stats .v{font-size:22px;font-weight:700}
+.stats .l{font-size:12px;color:var(--muted)}
+
+/* upcoming */
+.up-row{display:flex;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--border);color:var(--text)}
+.up-row:last-child{border-bottom:0}
+.up-row:hover{background:var(--panel2);text-decoration:none}
+.datebox{width:50px;text-align:center;border-radius:9px;background:var(--panel2);padding:4px 0;flex:none;line-height:1.15}
+.datebox .d{font-size:18px;font-weight:700}
+.datebox .mo{font-size:11px;text-transform:uppercase;color:var(--muted)}
+.up-row.overdue .datebox{background:var(--danger-soft);color:var(--danger)}
+.up-row.soon .datebox{background:var(--warn-soft);color:var(--warn)}
+.rel{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap}
+.up-row.overdue .rel{color:var(--danger);font-weight:600}
+
+/* filters */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{border:1px solid var(--border);background:var(--panel);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13px}
+.seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.toolbar select,.toolbar input{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--panel)}
+
+/* detail */
+.dl{display:grid;grid-template-columns:minmax(120px,210px) 1fr;gap:0}
+.dl>div{padding:8px 0;border-bottom:1px solid var(--border)}
+.dl>.k{color:var(--muted);font-size:14px;padding-right:12px}
+.dl>.v{white-space:pre-wrap;word-break:break-word}
+.dl>div:nth-last-child(-n+2){border-bottom:0}
+.grow-view{display:flex;flex-wrap:wrap;gap:4px 16px;padding:2px 0}
+.grow-view+.grow-view{border-top:1px dashed var(--border);margin-top:4px;padding-top:6px}
+.thumbs{display:flex;flex-wrap:wrap;gap:10px}
+.thumb{width:130px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--panel2);font-size:12px;color:var(--text)}
+.thumb .img{height:95px;display:grid;place-items:center;font-size:34px;background:var(--panel2)}
+.thumb img{width:100%;height:95px;object-fit:cover;display:block}
+.thumb .nm{padding:6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.linklist a{display:flex;gap:10px;align-items:center;padding:7px 0;color:var(--text)}
+.addr{font-size:16px;line-height:1.5;white-space:pre-line}
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+table.tbl td{padding:7px 4px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.tbl td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.tbl tr.total td{font-weight:700;border-bottom:0;border-top:2px solid var(--border)}
+table.tbl .bar{height:6px;background:var(--panel2);border-radius:9px;overflow:hidden;min-width:60px}
+table.tbl .bar>div{height:100%;background:var(--accent)}
+.ins-row{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border)}
+.ins-row:last-child{border-bottom:0}
+.ins-row .st{font-size:20px;line-height:1.2;width:24px;text-align:center;flex:none}
+.ins-row .body{flex:1;min-width:0}
+.ins-row.skip{opacity:.55}
+
+/* forms */
+.form .fsec{padding-top:6px}
+.form .fsec+.fsec{border-top:1px solid var(--border);margin-top:10px;padding-top:20px}
+.form .fsec>h2{margin-bottom:4px}
+.form .sec-note{font-size:13px;color:var(--muted);margin:0 0 14px}
+.form .field{display:block;margin-bottom:14px;border:0;padding:0;min-width:0}
+.form .field>span,.form legend{display:block;font-weight:600;font-size:14px;margin-bottom:5px;padding:0}
+.form .field small,.form legend small{font-weight:400;color:var(--muted)}
+.form input[type=text],.form input[type=email],.form input[type=tel],.form input[type=url],.form input[type=number],.form input[type=date],.form input[type=search],.form select,.form textarea{
+  width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--panel)}
+.form textarea{resize:vertical;min-height:80px}
+.form input:focus,.form select:focus,.form textarea:focus,.searchwrap input:focus{outline:2px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:0;border-color:var(--accent)}
+.form .check{display:flex;gap:8px;align-items:center;font-weight:400}
+.form .radio{display:flex;gap:8px;align-items:center;margin:4px 0}
+.rangewrap{display:flex;gap:12px;align-items:center}
+.rangewrap input{flex:1}
+.linkbox{border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.linkbox .lb-filter{border:0 !important;border-bottom:1px solid var(--border) !important;border-radius:0 !important}
+.lb-list{max-height:190px;overflow:auto;padding:4px 0}
+.lb-item{display:flex;gap:8px;align-items:center;padding:4px 11px;cursor:pointer;font-size:14px}
+.lb-item:hover{background:var(--panel2)}
+.lb-item small{color:var(--muted);margin-left:auto}
+.group .grow{display:flex;gap:10px;align-items:flex-end;padding:10px 12px 0;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--panel2)}
+.group .grow-fields{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0 12px}
+.group .grow .btn{margin-bottom:14px}
+.addr-lookup{position:relative}
+.addr-res{position:absolute;left:0;right:0;top:100%;z-index:10;background:var(--panel);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);margin-top:4px;overflow:hidden}
+.addr-res button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 12px;cursor:pointer;font-size:14px}
+.addr-res button:hover{background:var(--accent-soft)}
+.addr-status-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:-4px 0 14px;font-size:14px}
+.file-row{display:flex;gap:8px;align-items:center;padding:4px 0;font-size:14px}
+.file-row.removed{text-decoration:line-through;opacity:.55}
+.sticky-actions{position:sticky;bottom:0;background:var(--panel);padding:14px 0 0;border-top:1px solid var(--border);margin-top:8px}
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 16px}
+pre.out{white-space:pre-wrap;background:var(--panel2);padding:14px;border-radius:10px;font:13px/1.55 ui-monospace,Consolas,monospace;margin:0 0 12px}
+mark{background:color-mix(in srgb,var(--accent) 25%,transparent);color:inherit;border-radius:3px}
+
+/* sync, mail */
+#syncchip{margin-left:auto}
+#syncchip[hidden]{display:none}
+.msg-row{display:block;padding:10px 4px;border-bottom:1px solid var(--border);color:var(--text)}
+.msg-row:last-child{border-bottom:0}
+.msg-row:hover{background:var(--panel2);text-decoration:none}
+.msg-top{display:flex;gap:10px;align-items:baseline}
+.msg-prev{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mail-body{white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto;background:var(--panel2);padding:14px;border-radius:10px;font-size:14px}
+code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:13px;word-break:break-all}
+.steps{margin:0;padding-left:20px;line-height:1.8}
+
+/* iPhone notch / home indicator */
+.topbar{padding-top:max(12px,env(safe-area-inset-top))}
+.sidebar{padding-top:max(16px,env(safe-area-inset-top));padding-bottom:max(16px,env(safe-area-inset-bottom))}
+main{padding-bottom:max(60px,env(safe-area-inset-bottom))}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:50}
+#toast.show{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:260px;z-index:20;transform:translateX(-100%);transition:transform .2s;box-shadow:0 0 30px rgba(0,0,0,.2)}
+  body.nav-open .sidebar{transform:none}
+  body.nav-open::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:15}
+  .menu-btn{display:inline-flex}
+  .topbar{padding:10px 16px}
+  main{padding:18px 16px 60px}
+  .grid2{grid-template-columns:1fr}
+  .dl{grid-template-columns:1fr}
+  .dl>.k{border-bottom:0;padding-bottom:0}
+  /* 16px stops iPhone Safari from zooming into fields */
+  input,select,textarea,.form input,.form select,.form textarea{font-size:16px !important}
+  #syncchip span{display:none}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="content">
+    <div class="topbar">
+      <button class="btn sm menu-btn" data-act="toggle-nav" aria-label="Menu">☰</button>
+      <div class="searchwrap"><input id="q" type="search" placeholder="Search everything…  ( / )" autocomplete="off"></div>
+      <a class="btn sm" id="syncchip" href="#/sync" hidden></a>
+    </div>
+    <main id="main"></main>
+  </div>
+</div>
+<div id="toast"></div>
+<input type="file" id="vcfinput" accept=".vcf,text/vcard,text/x-vcard" hidden>
+
+<script>
+/* =====================================================================
+   COUNTRY KNOWLEDGE
+   Address format, postal code rules, ID documents and the insurance
+   system per country. Used by "About me" and "Contracts & finances".
+   Insurance information is a general orientation, not advice.
+   ===================================================================== */
+const CH_HEALTH = ['Assura', 'Atupri', 'Concordia', 'CSS', 'EGK', 'Groupe Mutuel', 'Helsana', 'KPT', 'ÖKK', 'Sanitas', 'Swica', 'Sympany', 'Visana'];
+const CH_GENERAL = ['AXA', 'Allianz Suisse', 'Baloise', 'Die Mobiliar', 'Generali', 'Helvetia', 'Smile', 'TCS', 'Vaudoise', 'Zurich'];
+const DE_HEALTH = ['Techniker Krankenkasse (TK)', 'AOK', 'Barmer', 'DAK-Gesundheit', 'IKK classic', 'KKH', 'HEK', 'Allianz (PKV)', 'AXA (PKV)', 'Debeka (PKV)', 'DKV (PKV)', 'Signal Iduna (PKV)', 'HanseMerkur (PKV)'];
+const DE_GENERAL = ['Allianz', 'AXA', 'CosmosDirekt', 'DEVK', 'ERGO', 'Generali', 'Gothaer', 'HUK-Coburg', 'LVM', 'R+V'];
+const AT_GENERAL = ['Allianz', 'Donau', 'Generali', 'Grawe', 'HDI', 'Merkur', 'Uniqa', 'Wiener Städtische', 'Zurich'];
+
+const lvl = (key, name, level, note = '', providers = []) => ({ key, name, level, note, providers });
+const genericInsurance = (healthLevel, healthNote = '') => [
+  lvl('gen_health', 'Health insurance', healthLevel, healthNote),
+  lvl('gen_liability', 'Personal liability', 'recommended', 'Covers damage you accidentally cause to other people or their property.'),
+  lvl('gen_household', 'Home contents / renters', 'recommended', 'Covers your belongings against fire, water damage and theft.'),
+  lvl('gen_motor', 'Motor vehicle', 'conditional', 'Liability cover is usually mandatory if you own a vehicle.'),
+  lvl('gen_building', 'Building / homeowners', 'conditional', 'For property owners; usually required by mortgage lenders.'),
+  lvl('gen_disability', 'Disability / income protection', 'optional', 'Pays if you can no longer work.'),
+  lvl('gen_life', 'Life insurance', 'optional', 'Relevant if others depend on your income.'),
+  lvl('gen_travel', 'Travel insurance', 'optional', 'Medical costs abroad, cancellation, repatriation.'),
+  lvl('gen_legal', 'Legal protection', 'optional', 'Lawyer and court costs.'),
+];
+const OTHER_ID = ['Passport', 'Identity card', 'Driving licence', 'Residence permit', 'Other'];
+
+const COUNTRIES = {
+  CH: {
+    name: 'Switzerland', flag: '🇨🇭', currency: 'CHF', lookup: 'swisstopo', example: 'Bahnhofstrasse 1, Zürich',
+    zip: /^\d{4}$/, zipHint: '4 digits', zipLabel: 'Postal code (PLZ)', cityLabel: 'City / town',
+    regionLabel: 'Canton', regions: ['AG', 'AI', 'AR', 'BE', 'BL', 'BS', 'FR', 'GE', 'GL', 'GR', 'JU', 'LU', 'NE', 'NW', 'OW', 'SG', 'SH', 'SO', 'SZ', 'TG', 'TI', 'UR', 'VD', 'VS', 'ZG', 'ZH'],
+    idTypes: ['Passport', 'Identity card', 'Driving licence', 'Residence permit B', 'Settlement permit C', 'Short-term permit L', 'Cross-border permit G', 'Health insurance card', 'AHV/AVS number', 'Other'],
+    telcos: ['Swisscom', 'Sunrise', 'Salt', 'Wingo', 'Yallo', 'M-Budget Mobile', 'Quickline', 'Init7', 'iWay'],
+    insurers: [...CH_GENERAL, ...CH_HEALTH],
+    system: `<p><b>Health:</b> basic health insurance (KVG/LAMal) is mandatory for everyone living in Switzerland. You choose the insurer, a yearly deductible (franchise, CHF 300–2,500 for adults) and a model (standard, family doctor, HMO or telemedicine). Basic benefits are identical at every insurer, so only the premium differs. Supplementary insurance (VVG) is optional, and insurers may refuse you.</p>
+      <p><b>Accident:</b> if you work at least 8 hours a week for one employer, the employer insures you (UVG). Otherwise, accident cover must be included in your health insurance.</p>
+      <p><b>Retirement (3 pillars):</b> 1st pillar AHV/IV (state, mandatory) · 2nd pillar BVG pension fund (through your employer) · 3rd pillar 3a/3b (voluntary private savings; 3a contributions are tax-deductible).</p>`,
+    insurance: [
+      lvl('ch_health_basic', 'Basic health insurance (KVG/LAMal)', 'mandatory', 'Required for everyone living in Switzerland (within 3 months of arrival). Compare premium, deductible and model.', CH_HEALTH),
+      lvl('ch_health_supp', 'Supplementary health insurance (VVG)', 'optional', 'E.g. dental, semi-private/private hospital ward, alternative medicine.', CH_HEALTH),
+      lvl('ch_accident', 'Accident insurance', 'mandatory', 'Via your employer (UVG) if you work 8+ h/week for one employer, otherwise included in your health insurance.', CH_HEALTH),
+      lvl('ch_liability', 'Personal liability (Privathaftpflicht)', 'recommended', 'Covers damage you cause to others. Often required by landlords.', CH_GENERAL),
+      lvl('ch_household', 'Household contents (Hausrat)', 'recommended', 'Covers your belongings against fire, water damage and theft. Mandatory in a few cantons.', CH_GENERAL),
+      lvl('ch_motor', 'Motor vehicle liability', 'conditional', 'Mandatory if you own a car or motorbike. Partial/full comprehensive cover (Teil-/Vollkasko) is optional.', CH_GENERAL),
+      lvl('ch_building', 'Building insurance', 'conditional', 'For property owners. Mandatory in most cantons, often with the cantonal building insurer.', CH_GENERAL),
+      lvl('ch_legal', 'Legal protection (Rechtsschutz)', 'optional', 'Lawyer and court costs, e.g. disputes with landlords or employers.', [...CH_GENERAL, 'Coop Rechtsschutz', 'CAP', 'Protekta', 'Dextra']),
+      lvl('ch_travel', 'Travel & assistance', 'optional', 'Cancellation costs, repatriation, emergency help abroad.', [...CH_GENERAL, 'ERV (Europäische Reiseversicherung)']),
+      lvl('ch_life', 'Life / death risk insurance', 'optional', 'Relevant if others depend on your income or you have a mortgage.', CH_GENERAL),
+      lvl('ch_3a', 'Pillar 3a (private pension)', 'optional', 'Voluntary retirement savings with tax-deductible contributions up to a yearly maximum.', ['VIAC', 'frankly', 'finpension', 'Your bank', ...CH_GENERAL]),
+    ],
+  },
+  DE: {
+    name: 'Germany', flag: '🇩🇪', currency: 'EUR', lookup: 'osm', example: 'Unter den Linden 1, Berlin',
+    zip: /^\d{5}$/, zipHint: '5 digits', zipLabel: 'Postal code (PLZ)', cityLabel: 'City / town',
+    idTypes: ['Passport (Reisepass)', 'Identity card (Personalausweis)', 'Driving licence (Führerschein)', 'Residence permit (Aufenthaltstitel)', 'Health card (eGK)', 'Tax ID (Steuer-ID)', 'Social security number', 'Other'],
+    telcos: ['Telekom', 'Vodafone', 'O2', '1&1', 'congstar'],
+    insurers: [...DE_GENERAL, ...DE_HEALTH],
+    system: `<p><b>Health:</b> health insurance is compulsory. Employees below the compulsory-insurance income threshold are in the statutory system (GKV). Contributions there depend on income and are shared with the employer, and you can choose your Krankenkasse freely. Civil servants, self-employed people and employees above the threshold can choose private insurance (PKV), where premiums depend on age, health and coverage.</p>
+      <p><b>Social insurance:</b> pension, unemployment and long-term care insurance are deducted from your salary. Statutory accident insurance for work is paid by your employer.</p>`,
+    insurance: [
+      lvl('de_health', 'Health insurance (GKV or PKV)', 'mandatory', 'Everyone must be insured, either statutory or private.', DE_HEALTH),
+      lvl('de_care', 'Long-term care (Pflegeversicherung)', 'mandatory', 'Included with statutory health insurance; private policyholders need private care insurance.', DE_HEALTH),
+      lvl('de_liability', 'Personal liability (Privathaftpflicht)', 'recommended', 'Covers damage you cause to others.', DE_GENERAL),
+      lvl('de_household', 'Household contents (Hausrat)', 'recommended', 'Covers your belongings against fire, water damage and burglary.', DE_GENERAL),
+      lvl('de_motor', 'Motor liability (Kfz-Haftpflicht)', 'conditional', 'Mandatory to register a vehicle.', DE_GENERAL),
+      lvl('de_disability', 'Occupational disability (Berufsunfähigkeit)', 'recommended', 'Pays if you can no longer work in your profession; statutory protection is low.', DE_GENERAL),
+      lvl('de_travelhealth', 'Travel health insurance', 'recommended', 'Statutory insurance covers little outside the EU and no repatriation.', DE_GENERAL),
+      lvl('de_dental', 'Supplementary dental', 'optional', '', DE_HEALTH),
+      lvl('de_legal', 'Legal protection (Rechtsschutz)', 'optional', '', DE_GENERAL),
+      lvl('de_building', 'Building insurance (Wohngebäude)', 'conditional', 'For homeowners; usually required by the mortgage lender.', DE_GENERAL),
+      lvl('de_life', 'Term life (Risikoleben)', 'optional', 'Relevant with dependants or a mortgage.', DE_GENERAL),
+    ],
+  },
+  AT: {
+    name: 'Austria', flag: '🇦🇹', currency: 'EUR', lookup: 'osm', example: 'Stephansplatz 1, Wien',
+    zip: /^\d{4}$/, zipHint: '4 digits', zipLabel: 'Postal code (PLZ)', cityLabel: 'City / town',
+    idTypes: ['Passport (Reisepass)', 'Identity card (Personalausweis)', 'Driving licence (Führerschein)', 'Residence permit', 'e-card', 'Social security number', 'Other'],
+    telcos: ['A1', 'Magenta', 'Drei', 'HoT', 'spusu'],
+    insurers: AT_GENERAL,
+    system: `<p><b>Social insurance:</b> employees and self-employed people are insured automatically for health, accident and pension (employees also for unemployment). Your occupation decides the insurer, for example ÖGK for most employees, BVAEB for public servants and SVS for the self-employed, so you don't choose one. Your e-card proves you're insured.</p>
+      <p><b>Private:</b> supplementary health insurance (e.g. "Sonderklasse" hospital cover) and most property insurances are optional.</p>`,
+    insurance: [
+      lvl('at_social', 'Social health insurance (ÖGK / BVAEB / SVS)', 'mandatory', 'Automatic through employment or self-employment.', ['ÖGK', 'BVAEB', 'SVS']),
+      lvl('at_private_health', 'Private supplementary health (Sonderklasse)', 'optional', '', ['Uniqa', 'Merkur', 'Generali', 'Wiener Städtische']),
+      lvl('at_household', 'Household insurance (Haushaltsversicherung)', 'recommended', 'Usually includes personal liability cover.', AT_GENERAL),
+      lvl('at_liability', 'Personal liability (if not in household insurance)', 'recommended', '', AT_GENERAL),
+      lvl('at_motor', 'Motor liability (Kfz-Haftpflicht)', 'conditional', 'Mandatory if you own a vehicle.', AT_GENERAL),
+      lvl('at_disability', 'Occupational disability (Berufsunfähigkeit)', 'optional', '', AT_GENERAL),
+      lvl('at_travel', 'Travel insurance', 'optional', '', AT_GENERAL),
+      lvl('at_legal', 'Legal protection (Rechtsschutz)', 'optional', '', AT_GENERAL),
+      lvl('at_building', 'Building insurance', 'conditional', 'For homeowners; usually required by the mortgage lender.', AT_GENERAL),
+      lvl('at_life', 'Life insurance', 'optional', '', AT_GENERAL),
+    ],
+  },
+  LI: {
+    name: 'Liechtenstein', flag: '🇱🇮', currency: 'CHF', lookup: 'osm', example: 'Städtle 1, Vaduz',
+    zip: /^94(8[5-9]|9[0-8])$/, zipHint: '9485–9498', zipLabel: 'Postal code (PLZ)', cityLabel: 'Municipality',
+    idTypes: ['Passport', 'Identity card', 'Driving licence', 'Residence permit', 'Health insurance card', 'Other'],
+    insurance: genericInsurance('mandatory', 'Mandatory health insurance (OKP) for residents.'),
+  },
+  FR: {
+    name: 'France', flag: '🇫🇷', currency: 'EUR', lookup: 'osm', example: '1 Rue de Rivoli, Paris', numberFirst: true,
+    zip: /^\d{5}$/, zipHint: '5 digits', zipLabel: 'Postal code', cityLabel: 'City / town',
+    idTypes: ['Passport', 'Identity card (CNI)', 'Driving licence', 'Residence permit (titre de séjour)', 'Carte Vitale', 'Other'],
+    insurance: genericInsurance('mandatory', 'Public health insurance (Assurance Maladie); a complementary "mutuelle" is common.'),
+  },
+  IT: {
+    name: 'Italy', flag: '🇮🇹', currency: 'EUR', lookup: 'osm', example: 'Via del Corso 1, Roma',
+    zip: /^\d{5}$/, zipHint: '5 digits', zipLabel: 'Postal code (CAP)', cityLabel: 'City / town', regionLabel: 'Province',
+    idTypes: ['Passport', 'Identity card (CIE)', 'Driving licence', 'Residence permit', 'Health card (Tessera sanitaria)', 'Tax code (Codice fiscale)', 'Other'],
+    insurance: genericInsurance('mandatory', 'Public health service (SSN) for residents.'),
+  },
+  GB: {
+    name: 'United Kingdom', flag: '🇬🇧', currency: 'GBP', lookup: 'osm', example: '10 Downing Street, London', numberFirst: true,
+    zip: /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i, zipHint: 'e.g. SW1A 2AA', zipLabel: 'Postcode', cityLabel: 'Town / city',
+    idTypes: ['Passport', 'Driving licence', 'Residence permit / eVisa', 'National Insurance number', 'Other'],
+    insurance: genericInsurance('optional', 'The NHS covers residents; private health insurance is optional.'),
+  },
+  US: {
+    name: 'United States', flag: '🇺🇸', currency: 'USD', lookup: 'osm', example: '1600 Pennsylvania Ave, Washington', numberFirst: true,
+    zip: /^\d{5}(-\d{4})?$/, zipHint: '5 digits (or ZIP+4)', zipLabel: 'ZIP code', cityLabel: 'City', regionLabel: 'State',
+    regions: 'AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '),
+    idTypes: ['Passport', 'Passport card', "Driver's license", 'State ID', 'Green card', 'Social Security number', 'Other'],
+    insurance: genericInsurance('recommended', 'Usually through your employer, the ACA Marketplace, Medicare or Medicaid.'),
+  },
+  OTHER: {
+    name: 'Other country', flag: '🌍', lookup: 'osm', example: 'Street 1, City',
+    zipLabel: 'Postal code', cityLabel: 'City / town', idTypes: OTHER_ID, insurance: genericInsurance('recommended'),
+  },
+};
+const SUGGEST = {
+  'Streaming & Media': ['Netflix', 'Spotify', 'Disney+', 'Apple TV+', 'Amazon Prime', 'YouTube Premium', 'Apple Music', 'DAZN'],
+  'AI & Software': ['Anthropic (Claude)', 'OpenAI (ChatGPT)', 'Google One / Gemini', 'Microsoft 365', 'Adobe', 'Apple iCloud', 'Dropbox'],
+};
+const profileEntry = () => state.entries.find(e => e.topic === 'profile');
+const countryOf = d => COUNTRIES[d?.country] || COUNTRIES.OTHER;
+const myCountry = () => countryOf(profileEntry()?.data);
+const countryOptions = Object.entries(COUNTRIES).map(([k, c]) => ({ value: k, label: `${c.flag} ${c.name}` }));
+
+/* =====================================================================
+   TOPIC DEFINITIONS
+   The app builds forms, lists, details, reminders and summaries from
+   these definitions automatically.
+   Field types: text, textarea, number, money, date, select, country,
+     checkbox, phone, email, url, rating, progress, link, group
+     (repeatable rows), hidden, custom (own form/detail renderers)
+   Field options: section, showIf(d), options (array or fn(d)),
+     rerender (rebuild form on change), remind ('once'|'yearly'),
+     unit, placeholder (string or fn(d)), suggest(d) (autocomplete),
+     hideInDetail, label (string or fn(d))
+   ===================================================================== */
+const F = (key, label, type = 'text', extra = {}) => ({ key, label, type, ...extra });
+
+const BUDGET = [
+  ['budgetGroceries', 'Groceries', '🛒'], ['budgetEatingOut', 'Eating out', '🍽️'], ['budgetClothing', 'Clothing', '👕'],
+  ['budgetLeisure', 'Leisure time', '🎉'], ['budgetVacation', 'Vacation', '🏖️'], ['budgetSavings', 'Savings', '🏦'],
+  ['budgetInvestments', 'Investments', '📈'], ['budgetTax', 'Taxes', '🧾'], ['budgetOther', 'Other', '📦'],
+];
+const notMale = d => d.gender !== 'Male';
+const notFemale = d => d.gender !== 'Female';
+
+const TOPICS = [
+  {
+    id: 'profile', name: 'About me', icon: '🙂', color: '#3a68f0', single: true,
+    description: 'Your personal details, address, IDs, sizes, budget and insurance overview.',
+    sectionNotes: {
+      'Address': d => `Fields follow the address format for ${countryOf(d).flag} ${countryOf(d).name}. Change the country under Personal.`,
+      'ID documents': () => 'Expiry dates show up under "Coming up".',
+      'Clothing sizes': d => d.gender ? `Showing size fields for: ${d.gender.toLowerCase()}.` : 'Choose a gender under Personal to show only the matching size fields.',
+      'Monthly budget': () => 'Amounts per month. For yearly costs like vacation or taxes, divide by 12. Fixed costs come from your recurring charges automatically.',
+    },
+    fields: [
+      F('firstName', 'First name', 'text', { required: true, section: 'Personal' }),
+      F('lastName', 'Last name', 'text', { section: 'Personal' }),
+      F('gender', 'Gender', 'select', { section: 'Personal', options: ['Female', 'Male', 'Diverse / not specified'], rerender: true }),
+      F('birthday', 'Birthday', 'date', { section: 'Personal', remind: 'yearly', remindLabel: 'Your birthday' }),
+      F('country', 'Country of residence', 'country', { section: 'Personal', rerender: true }),
+      F('nationality', 'Nationality', 'text', { section: 'Personal' }),
+      F('phone', 'Phone', 'phone', { section: 'Personal' }),
+      F('email', 'Email', 'email', { section: 'Personal' }),
+
+      F('addressLookup', '', 'custom', { section: 'Address', form: addressLookupForm }),
+      F('street', 'Street', 'text', { section: 'Address', hideInDetail: true }),
+      F('houseNo', 'House number', 'text', { section: 'Address', hideInDetail: true }),
+      F('zip', d => countryOf(d).zipLabel, 'text', { section: 'Address', hideInDetail: true, placeholder: d => countryOf(d).zipHint || '' }),
+      F('city', d => countryOf(d).cityLabel, 'text', { section: 'Address', hideInDetail: true }),
+      F('region', d => countryOf(d).regionLabel, 'select', { section: 'Address', hideInDetail: true, showIf: d => !!countryOf(d).regionLabel, options: d => countryOf(d).regions || null }),
+      F('addressVerified', '', 'hidden', { section: 'Address' }),
+      F('addressStatus', '', 'custom', { section: 'Address', form: addressStatusForm }),
+
+      F('ids', 'ID documents', 'group', {
+        section: 'ID documents', addLabel: 'Add ID document', rowLabel: r => `${r.type || 'ID document'} expires`,
+        fields: [F('type', 'Type', 'select', { options: d => countryOf(d).idTypes }), F('number', 'Number'), F('expiry', 'Expires', 'date', { remind: 'once' })],
+      }),
+
+      F('height', 'Height', 'number', { section: 'Body & health', unit: 'cm' }),
+      F('weight', 'Weight', 'number', { section: 'Body & health', unit: 'kg' }),
+      F('bloodType', 'Blood type', 'select', { section: 'Body & health', options: ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', '0+', '0−'] }),
+      F('allergies', 'Allergies / intolerances', 'text', { section: 'Body & health' }),
+
+      F('sizeTops', 'Tops / T-shirts', 'select', { section: 'Clothing sizes', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] }),
+      F('sizeDress', 'Dresses / blouses (EU)', 'text', { section: 'Clothing sizes', showIf: notMale, placeholder: 'e.g. 38' }),
+      F('sizeBra', 'Bra', 'text', { section: 'Clothing sizes', showIf: notMale, placeholder: 'e.g. 75B' }),
+      F('sizeCollar', 'Shirts (collar size)', 'text', { section: 'Clothing sizes', showIf: notFemale, placeholder: 'e.g. 41' }),
+      F('sizeSuit', 'Suits / jackets (EU)', 'text', { section: 'Clothing sizes', showIf: notFemale, placeholder: 'e.g. 50' }),
+      F('sizeTrousers', 'Trousers (EU)', 'text', { section: 'Clothing sizes', placeholder: d => d.gender === 'Female' ? 'e.g. 38' : 'e.g. 50' }),
+      F('sizeJeans', 'Jeans (W/L)', 'text', { section: 'Clothing sizes', placeholder: 'e.g. 32/34' }),
+      F('sizeShoes', 'Shoes (EU)', 'text', { section: 'Clothing sizes', placeholder: 'e.g. 42' }),
+      F('sizeBelt', 'Belt (cm)', 'text', { section: 'Clothing sizes', showIf: notFemale, placeholder: 'e.g. 95' }),
+      F('sizeRing', 'Ring size', 'text', { section: 'Clothing sizes', placeholder: 'e.g. 54' }),
+
+      F('income', 'Net income', 'money', { section: 'Monthly budget', hideInDetail: true }),
+      ...BUDGET.map(([k, l]) => F(k, l, 'money', { section: 'Monthly budget', hideInDetail: true })),
+
+      F('recurring', '', 'custom', { section: 'Recurring charges', form: () => `<p class="sec-note" style="margin:0">Recurring charges (phone, internet, insurance, Netflix, Claude…) are stored in <b>Contracts & finances</b>, so you enter each one only once. After saving, use the quick-add buttons on this page.</p>`, detail: recurringDetail }),
+      F('insurance', '', 'custom', { section: 'Insurance check', form: () => `<p class="sec-note" style="margin:0">The insurance check uses your country and your insurance contracts. Nothing to fill in here.</p>`, detail: insuranceDetail }),
+
+      F('emergency', 'Emergency contact', 'link', { section: 'Emergency & notes', to: ['contacts'] }),
+      F('notes', 'Notes', 'textarea', { section: 'Emergency & notes' }),
+    ],
+    sectionExtra: {
+      'Personal': e => e.data.birthday ? `<p class="small muted" style="margin:8px 0 0">Age: ${ageOf(e.data.birthday)}</p>` : '',
+      'Address': addressDetail,
+      'Body & health': e => { const { height: hh, weight: w } = e.data; return hh && w ? `<p class="small muted" style="margin:8px 0 0">BMI: ${(w / (hh / 100) ** 2).toFixed(1)}</p>` : ''; },
+      'Monthly budget': budgetDetail,
+    },
+  },
+  {
+    id: 'health', name: 'Health', icon: '🩺', color: '#e0525e',
+    description: 'Appointments, medications, vaccinations, doctors and conditions.',
+    titleField: 'title', filterField: 'type', defaultSort: 'date:date',
+    fields: [
+      F('type', 'Type', 'select', { options: ['Appointment', 'Medication', 'Vaccination', 'Check-up', 'Condition', 'Note'], required: true }),
+      F('title', 'Title', 'text', { required: true, placeholder: 'e.g. Dentist check-up, Ibuprofen, Tetanus' }),
+      F('date', 'Date', 'date', { remind: 'once', futureOnly: true, remindIf: d => d.type === 'Appointment' || d.type === 'Check-up', remindNote: d => d.type }),
+      F('nextDue', 'Next due / follow-up', 'date', { remind: 'once' }),
+      F('doctor', 'Doctor / contact', 'link', { to: ['contacts'] }),
+      F('dosage', 'Dosage', 'text', { placeholder: 'For medications, e.g. 400 mg, 2× daily' }),
+      F('status', 'Status', 'select', { options: ['Active', 'Ongoing', 'Done'] }),
+      F('notes', 'Notes', 'textarea'),
+    ],
+    inactive: d => d.status === 'Done',
+    subtitle: d => [d.type, d.date && fmtDate(d.date), d.dosage, d.status],
+    summary: list => {
+      const meds = list.filter(e => e.data.type === 'Medication' && e.data.status !== 'Done').length;
+      const t = todayISO();
+      const next = list.filter(e => e.data.type === 'Appointment' && e.data.date >= t).length;
+      return [{ l: 'Active medications', v: meds }, { l: 'Upcoming appointments', v: next }];
+    },
+  },
+  {
+    id: 'contracts', name: 'Contracts & finances', icon: '📄', color: '#1a9b6c',
+    description: 'Insurance, subscriptions and other recurring charges with costs and deadlines.',
+    titleField: 'title', filterField: 'category',
+    fields: [
+      F('title', 'Name', 'text', { required: true, placeholder: 'e.g. Health insurance, Netflix, Mobile plan' }),
+      F('category', 'Category', 'select', { rerender: true, options: ['Insurance', 'Phone & Internet', 'Streaming & Media', 'AI & Software', 'Subscription', 'Housing', 'Utilities', 'Bank & Credit', 'Leasing', 'Other'] }),
+      F('insuranceType', 'Insurance type', 'select', { rerender: true, showIf: d => d.category === 'Insurance', options: () => myCountry().insurance.map(i => ({ value: i.key, label: i.name })) }),
+      F('chFranchise', 'Deductible (franchise, CHF)', 'select', { showIf: d => d.insuranceType === 'ch_health_basic', options: ['300', '500', '1000', '1500', '2000', '2500'] }),
+      F('chModel', 'Insurance model', 'select', { showIf: d => d.insuranceType === 'ch_health_basic', options: ['Standard (free choice of doctor)', 'Family doctor (Hausarzt)', 'HMO', 'Telmed'] }),
+      F('deSystem', 'System', 'select', { showIf: d => d.insuranceType === 'de_health', options: ['Statutory (GKV)', 'Private (PKV)'] }),
+      F('provider', 'Provider', 'text', { suggest: providerSuggestions }),
+      F('number', 'Customer / policy number'),
+      F('cost', 'Cost', 'money'),
+      F('billing', 'Billing', 'select', { options: ['Monthly', 'Quarterly', 'Yearly', 'One-time'], default: 'Monthly' }),
+      F('status', 'Status', 'select', { options: ['Active', 'Cancelled', 'Ended'], default: 'Active' }),
+      F('startDate', 'Start date', 'date'),
+      F('endDate', 'Ends / renews on', 'date', { remind: 'once' }),
+      F('cancelBy', 'Cancel by (notice deadline)', 'date', { remind: 'once' }),
+      F('contact', 'Contact person', 'link', { to: ['contacts'] }),
+      F('website', 'Website / login page', 'url'),
+      F('notes', 'Notes', 'textarea'),
+    ],
+    inactive: d => d.status === 'Cancelled' || d.status === 'Ended',
+    subtitle: d => [d.category, d.provider, d.cost !== '' && d.cost != null ? `${fmtMoney(d.cost)}${d.billing ? ' / ' + d.billing.toLowerCase() : ''}` : '', d.status !== 'Active' ? d.status : ''],
+    summary: list => {
+      const active = list.filter(isActiveContract);
+      const monthly = active.reduce((s, e) => s + monthlyCost(e.data), 0);
+      return [{ l: 'Monthly costs', v: fmtMoney(monthly) }, { l: 'Yearly costs', v: fmtMoney(monthly * 12) }, { l: 'Active contracts', v: active.length }];
+    },
+  },
+  {
+    id: 'contacts', name: 'Contacts', icon: '👥', color: '#d98a1c',
+    description: 'Family, friends, doctors and service providers.',
+    titleField: 'name', filterField: 'relation',
+    fields: [
+      F('name', 'Name', 'text', { required: true }),
+      F('relation', 'Relation', 'select', { options: ['Family', 'Friend', 'Work', 'Doctor', 'Service', 'Other'] }),
+      F('company', 'Company / practice'),
+      F('phone', 'Phone', 'phone'),
+      F('email', 'Email', 'email'),
+      F('address', 'Address', 'textarea'),
+      F('birthday', 'Birthday', 'date', { remind: 'yearly' }),
+      F('notes', 'Notes', 'textarea', { placeholder: 'Gift ideas, how you met, kids’ names…' }),
+    ],
+    subtitle: d => [d.relation, d.company, d.phone],
+    headerActions: () => `<button class="btn" data-act="vcf-import" title="Import a .vcf file exported from the iPhone Contacts app">📇 Import from iPhone</button>`,
+  },
+  {
+    id: 'documents', name: 'Documents & mail', icon: '📥', color: '#0f8fb3',
+    description: 'Saved emails, letters, invoices, receipts and certificates.',
+    titleField: 'title', filterField: 'kind', defaultSort: 'date:date',
+    fields: [
+      F('title', 'Title / subject', 'text', { required: true }),
+      F('kind', 'Kind', 'select', { options: ['Email', 'Letter', 'Invoice', 'Receipt', 'Contract document', 'Certificate', 'Other'], default: 'Other' }),
+      F('from', 'From / sender'),
+      F('date', 'Date', 'date'),
+      F('status', 'Status', 'select', { options: ['Open', 'Done'], default: 'Open' }),
+      F('dueDate', 'Due / deadline', 'date', { remind: 'once' }),
+      F('amount', 'Amount', 'money'),
+      F('body', 'Content', 'textarea'),
+      F('notes', 'Notes', 'textarea'),
+    ],
+    inactive: d => d.status === 'Done',
+    subtitle: d => [d.kind, d.from, d.date && fmtDate(d.date), d.amount !== '' && d.amount != null ? fmtMoney(d.amount) : '', d.status === 'Done' ? 'Done' : ''],
+    headerActions: () => `<a class="btn" href="#/mail">✉️ Import from email</a>`,
+  },
+  {
+    id: 'goals', name: 'Goals', icon: '🎯', color: '#8a5cf0',
+    description: 'What you want to achieve, with progress and next steps.',
+    titleField: 'title', filterField: 'status', progressField: 'progress',
+    fields: [
+      F('title', 'Goal', 'text', { required: true }),
+      F('area', 'Area', 'select', { options: ['Health', 'Career', 'Finance', 'Learning', 'Relationships', 'Personal', 'Travel'] }),
+      F('status', 'Status', 'select', { options: ['Idea', 'Active', 'Paused', 'Done'], default: 'Active' }),
+      F('progress', 'Progress', 'progress'),
+      F('targetDate', 'Target date', 'date', { remind: 'once' }),
+      F('why', 'Why it matters', 'textarea'),
+      F('nextStep', 'Next step'),
+      F('ideas', 'Related ideas', 'link', { to: ['ideas'] }),
+      F('notes', 'Notes', 'textarea'),
+    ],
+    inactive: d => d.status === 'Done',
+    subtitle: d => [d.area, d.status, d.targetDate && 'by ' + fmtDate(d.targetDate)],
+    summary: list => {
+      const active = list.filter(e => e.data.status === 'Active');
+      const avg = active.length ? Math.round(active.reduce((s, e) => s + (Number(e.data.progress) || 0), 0) / active.length) : 0;
+      return [{ l: 'Active goals', v: active.length }, { l: 'Average progress', v: avg + '%' }, { l: 'Done', v: list.filter(e => e.data.status === 'Done').length }];
+    },
+  },
+  {
+    id: 'ideas', name: 'Ideas', icon: '💡', color: '#c9a200',
+    description: 'Your idea inbox for projects, gifts, trips and things to buy.',
+    titleField: 'title', filterField: 'status',
+    fields: [
+      F('title', 'Idea', 'text', { required: true }),
+      F('category', 'Category', 'select', { options: ['Project', 'Business', 'Travel', 'Gift', 'Purchase', 'Learning', 'Other'] }),
+      F('status', 'Status', 'select', { options: ['New', 'Considering', 'Doing', 'Done', 'Dropped'], default: 'New' }),
+      F('priority', 'Priority', 'rating'),
+      F('description', 'Description', 'textarea'),
+      F('goal', 'Supports goal', 'link', { to: ['goals'] }),
+    ],
+    subtitle: d => [d.category, d.status, d.priority ? '★'.repeat(d.priority) : ''],
+  },
+];
+const TOPIC = Object.fromEntries(TOPICS.map(t => [t.id, t]));
+
+/* ===================================================================== */
+/* Storage (IndexedDB, stays on this computer)                            */
+/* ===================================================================== */
+let db = null; // null = storage blocked, data is kept in memory only
+const mem = { entries: new Map(), files: new Map(), meta: new Map() };
+const keyOf = (name, v) => name === 'meta' ? v.key : v.id;
+const state = { entries: [], meta: {} };
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('lifebook', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('entries', { keyPath: 'id' });
+      d.createObjectStore('files', { keyPath: 'id' }).createIndex('entryId', 'entryId');
+      d.createObjectStore('meta', { keyPath: 'key' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+const store = (name, mode = 'readonly') => db.transaction(name, mode).objectStore(name);
+const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const dbAll = async name => db ? req(store(name).getAll()) : [...mem[name].values()];
+const dbPut = async (name, v) => db ? req(store(name, 'readwrite').put(v)) : void mem[name].set(keyOf(name, v), v);
+const dbDel = async (name, k) => db ? req(store(name, 'readwrite').delete(k)) : void mem[name].delete(k);
+const dbClear = async name => db ? req(store(name, 'readwrite').clear()) : mem[name].clear();
+const filesFor = async entryId => db ? req(store('files').index('entryId').getAll(entryId)) : [...mem.files.values()].filter(f => f.entryId === entryId);
+/* settings that sync between devices; meta keys starting with "_" stay on this device only */
+const SYNCED_META = ['name', 'currency', 'requests'];
+async function setMeta(key, value) {
+  state.meta[key] = value;
+  await dbPut('meta', { key, value });
+  if (SYNCED_META.includes(key)) {
+    state.meta.settingsUpdated = new Date().toISOString();
+    await dbPut('meta', { key: 'settingsUpdated', value: state.meta.settingsUpdated });
+    scheduleSync();
+  }
+}
+const clean = ({ _hay, _hayAt, ...e }) => e;
+async function saveEntry(e) { e.updated = new Date().toISOString(); e._hay = null; await dbPut('entries', clean(e)); scheduleSync(); }
+/* remember deletions so other devices delete the same entries/files when syncing */
+async function tombstone(kind, ids) {
+  if (!ids.length) return;
+  const key = kind === 'file' ? 'deletedFiles' : 'deleted';
+  const t = { ...(state.meta[key] || {}) }, now = new Date().toISOString();
+  ids.forEach(id => t[id] = now);
+  state.meta[key] = t;
+  await dbPut('meta', { key, value: t });
+}
+
+/* ===================================================================== */
+/* Helpers                                                                */
+/* ===================================================================== */
+const $ = s => document.querySelector(s);
+const main = $('#main');
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+const isoOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const todayISO = () => isoOf(new Date());
+const noYear = s => +String(s).slice(0, 4) < 1800; // e.g. iPhone birthdays without year are stored as 1604
+function timeAgo(iso) {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+  return fmtDate(iso.slice(0, 10));
+}
+const isoUTC = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+const daysBetween = (a, b) => Math.round((isoUTC(b) - isoUTC(a)) / 86400000);
+function fmtDate(s, opts = { day: 'numeric', month: 'short', year: 'numeric' }) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-').map(Number);
+  if (noYear(s)) { opts = { ...opts }; delete opts.year; delete opts.weekday; }
+  return new Date(noYear(s) ? 2000 : y, m - 1, d).toLocaleDateString(undefined, opts);
+}
+function relDays(n) {
+  if (n === 0) return 'today';
+  if (n === 1) return 'tomorrow';
+  if (n === -1) return 'yesterday';
+  return n > 0 ? `in ${n} days` : `${-n} days ago`;
+}
+function ageOf(bday) {
+  const t = todayISO(); let a = +t.slice(0, 4) - +bday.slice(0, 4);
+  if (t.slice(5) < bday.slice(5)) a--;
+  return a;
+}
+const currency = () => state.meta.currency || myCountry().currency || '';
+function fmtMoney(v) {
+  const n = Number(v) || 0;
+  const s = n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return currency() ? `${currency()} ${s}` : s;
+}
+const fmtSize = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+function monthlyCost(d) {
+  const c = Number(d.cost) || 0;
+  return { Monthly: c, Quarterly: c / 3, Yearly: c / 12 }[d.billing || 'Monthly'] ?? 0;
+}
+const isActiveContract = e => (e.data.status || 'Active') === 'Active';
+function title(e) {
+  const t = TOPIC[e.topic];
+  if (!t) return '(unknown)';
+  if (t.single) return [e.data.firstName, e.data.lastName].filter(Boolean).join(' ') || t.name;
+  return e.data[t.titleField] || '(untitled)';
+}
+const byId = id => state.entries.find(e => e.id === id);
+const entriesOf = topicId => state.entries.filter(e => e.topic === topicId);
+const linkFieldsOf = t => t.fields.filter(f => f.type === 'link');
+const lbl = (f, d) => typeof f.label === 'function' ? f.label(d) || '' : f.label;
+const visible = (f, d) => !f.showIf || f.showIf(d);
+const optionsOf = (f, d) => (typeof f.options === 'function' ? f.options(d) : f.options) || null;
+const optVal = o => typeof o === 'object' ? o.value : o;
+const optLabel = o => typeof o === 'object' ? o.label : o;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600);
+}
+/* in-page confirmation dialog (browser pop-ups are blocked in some windows) */
+function ask(message, okLabel = 'Yes, continue') {
+  return new Promise(resolve => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.4);display:grid;place-items:center;padding:16px';
+    wrap.innerHTML = `<div class="card" role="dialog" aria-modal="true" style="max-width:440px;width:100%">
+      <p style="margin:0 0 16px">${h(message)}</p>
+      <div class="actions" style="justify-content:flex-end"><button class="btn" data-a="no">Cancel</button><button class="btn primary" data-a="yes">${h(okLabel)}</button></div></div>`;
+    const done = v => { wrap.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
+    const onKey = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); done(false); } };
+    wrap.addEventListener('click', ev => { const b = ev.target.closest('[data-a]'); if (b) done(b.dataset.a === 'yes'); else if (ev.target === wrap) done(false); });
+    document.addEventListener('keydown', onKey, true);
+    document.body.append(wrap);
+    wrap.querySelector('[data-a=yes]').focus();
+  });
+}
+let objectURLs = [];
+function freeURLs() { objectURLs.forEach(u => URL.revokeObjectURL(u)); objectURLs = []; }
+function objURL(blob) { const u = URL.createObjectURL(blob); objectURLs.push(u); return u; }
+function allTags() {
+  const m = new Map();
+  state.entries.forEach(e => (e.tags || []).forEach(t => m.set(t, (m.get(t) || 0) + 1)));
+  return [...m].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}
+function backlinks(id) {
+  return state.entries.filter(e => e.id !== id && (
+    (e.related || []).includes(id) ||
+    linkFieldsOf(TOPIC[e.topic] || { fields: [] }).some(f => (e.data[f.key] || []).includes(id))
+  ));
+}
+function providerSuggestions(d) {
+  const c = myCountry();
+  if (d.category === 'Insurance') return c.insurance.find(i => i.key === d.insuranceType)?.providers?.length ? c.insurance.find(i => i.key === d.insuranceType).providers : (c.insurers || []);
+  if (d.category === 'Phone & Internet') return c.telcos || [];
+  return SUGGEST[d.category] || [];
+}
+/* group fields by section, keeping definition order */
+function sectionsOf(t, d) {
+  const out = [];
+  for (const f of t.fields) {
+    if (!visible(f, d)) continue;
+    const name = f.section || '';
+    let s = out.find(x => x.name === name);
+    if (!s) out.push(s = { name, fields: [] });
+    s.fields.push(f);
+  }
+  return out;
+}
+
+/* ===================================================================== */
+/* Reminders                                                              */
+/* ===================================================================== */
+function reminders(ahead = 60, past = 30) {
+  const out = [], t = todayISO(), thisYear = +t.slice(0, 4);
+  for (const e of state.entries) {
+    const tp = TOPIC[e.topic]; if (!tp) continue;
+    const inactive = tp.inactive?.(e.data);
+    // collect date values, including those inside repeatable groups
+    const items = [];
+    for (const f of tp.fields) {
+      if (f.type === 'group') {
+        for (const row of e.data[f.key] || []) for (const sf of f.fields) if (sf.remind && row[sf.key]) items.push({ f: sf, v: row[sf.key], label: f.rowLabel?.(row) });
+      } else if (f.remind && e.data[f.key] && (!f.remindIf || f.remindIf(e.data))) items.push({ f, v: e.data[f.key] });
+    }
+    for (const { f, v, label } of items) {
+      if (f.remind === 'yearly') {
+        const [y, m, d] = v.split('-').map(Number);
+        let occY = thisYear, occ = new Date(Date.UTC(occY, m - 1, d)).toISOString().slice(0, 10);
+        if (occ < t) { occY++; occ = new Date(Date.UTC(occY, m - 1, d)).toISOString().slice(0, 10); }
+        const diff = daysBetween(t, occ);
+        if (diff <= ahead) {
+          const age = y < 1800 ? 0 : occY - y;
+          out.push({ e, tp, date: occ, diff, label: f.remindLabel || `${title(e)}'s birthday`, note: age > 0 ? `${tp.single ? 'You turn' : 'Turns'} ${age}` : '' });
+        }
+      } else {
+        if (inactive) continue;
+        const diff = daysBetween(t, v);
+        if (diff >= (f.futureOnly ? 0 : -past) && diff <= ahead)
+          out.push({ e, tp, date: v, diff, label: label || (tp.single ? f.label : title(e)), note: tp.single ? '' : (f.remindNote?.(e.data) || f.label) });
+      }
+    }
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/* ===================================================================== */
+/* Sidebar                                                                */
+/* ===================================================================== */
+function renderSidebar(active) {
+  const link = (href, icon, label, key, count = '') =>
+    `<a href="${href}" class="${active === key ? 'active' : ''}"><span>${icon}</span><span>${h(label)}</span>${count !== '' ? `<span class="count">${count}</span>` : ''}</a>`;
+  $('#sidebar').innerHTML = `
+    <div class="brand"><span class="ticon" style="--c:#3a68f0">📘</span> Lifebook</div>
+    <nav class="nav">
+      ${link('#/', '🏠', 'Dashboard', 'dashboard')}
+      ${link('#/upcoming', '⏰', 'Coming up', 'upcoming', reminders(60, 30).length || '')}
+      <div class="nav-label">Topics</div>
+      ${TOPICS.map(t => link(`#/topic/${t.id}`, t.icon, t.name, 'topic:' + t.id, t.single ? '' : entriesOf(t.id).length)).join('')}
+      <div class="nav-label">Organise</div>
+      ${link('#/tags', '🏷️', 'Tags', 'tags', allTags().length || '')}
+      ${link('#/mail', '✉️', 'Email', 'mail')}
+      ${link('#/sync', '📱', 'Phone & sync', 'sync')}
+      ${link('#/request', '✨', 'Plan a new topic', 'request')}
+      ${link('#/backup', '💾', 'Backup & settings', 'backup')}
+    </nav>`;
+  renderSyncChip();
+}
+
+/* ===================================================================== */
+/* Router                                                                 */
+/* ===================================================================== */
+async function route() {
+  freeURLs();
+  document.body.classList.remove('nav-open');
+  const hash = currentRoute.slice(1) || '/';
+  const [path, qs] = hash.split('?');
+  const parts = path.split('/').filter(Boolean).map(decodeURIComponent);
+  const q = new URLSearchParams(qs || '');
+  const [a, b] = parts;
+  let active = '';
+  if (a !== 'search') $('#q').value = '';
+  try {
+    if (!a) { active = 'dashboard'; viewDashboard(); }
+    else if (a === 'upcoming') { active = 'upcoming'; viewUpcoming(); }
+    else if (a === 'topic' && TOPIC[b]) { active = 'topic:' + b; await viewTopic(TOPIC[b], q); }
+    else if (a === 'entry' && byId(b)) { active = 'topic:' + byId(b).topic; await viewEntry(byId(b)); }
+    else if (a === 'new' && TOPIC[b]) {
+      active = 'topic:' + b;
+      const existing = TOPIC[b].single && entriesOf(b)[0];
+      await viewForm(TOPIC[b], existing || null, q);
+    }
+    else if (a === 'edit' && byId(b)) { active = 'topic:' + byId(b).topic; await viewForm(TOPIC[byId(b).topic], byId(b), q); }
+    else if (a === 'search') { viewSearch(q.get('q') || ''); }
+    else if (a === 'tags') { active = 'tags'; viewTags(); }
+    else if (a === 'tag') { active = 'tags'; viewTag(b); }
+    else if (a === 'request') { active = 'request'; viewRequest(); }
+    else if (a === 'mail') { active = 'mail'; renderSidebar(active); b ? await viewMessage(b) : await viewMail(q); }
+    else if (a === 'sync') { active = 'sync'; viewSync(); }
+    else if (a === 'backup') { active = 'backup'; viewBackup(); }
+    else { main.innerHTML = `<div class="card empty"><div class="big">🤷</div><p>This page doesn't exist (anymore).</p><a class="btn" href="#/">Back to dashboard</a></div>`; }
+  } catch (err) {
+    console.error(err);
+    main.innerHTML = `<div class="card"><h2>Something went wrong</h2><pre class="out">${h(err.stack || err)}</pre></div>`;
+  }
+  renderSidebar(active);
+  if (a !== 'search' && !q.get('sec')) window.scrollTo(0, 0);
+}
+
+/* ===================================================================== */
+/* Views                                                                  */
+/* ===================================================================== */
+function topicIcon(t, cls = '') { return `<span class="ticon ${cls}" style="--c:${t.color}">${t.icon}</span>`; }
+
+function upRow(r) {
+  const cls = r.diff < 0 ? 'overdue' : r.diff <= 7 ? 'soon' : '';
+  const d = r.date.split('-')[2];
+  return `<a class="up-row ${cls}" href="#/entry/${r.e.id}">
+    <div class="datebox"><div class="d">${+d}</div><div class="mo">${fmtDate(r.date, { month: 'short' })}</div></div>
+    ${topicIcon(r.tp)}
+    <div style="min-width:0"><div><b>${h(r.label)}</b></div><div class="small muted">${h(r.note)}${r.note ? ' · ' : ''}${fmtDate(r.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
+    <div class="rel">${r.diff < 0 ? 'overdue · ' : ''}${relDays(r.diff)}</div></a>`;
+}
+
+function backupNotice() {
+  if (!state.entries.length) return '';
+  const last = state.meta.lastBackup;
+  const days = last ? daysBetween(last.slice(0, 10), todayISO()) : null;
+  if (days !== null && days < 14) return '';
+  return `<div class="notice"><span>💾 ${last ? `Your last backup was ${days} days ago.` : 'You haven’t made a backup yet.'} Your data only lives in this browser, so export it now and then.</span><a class="btn sm" href="#/backup">Back up now</a></div>`;
+}
+
+function viewDashboard() {
+  const hr = new Date().getHours();
+  const greet = hr < 11 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  const name = state.meta.name || profileEntry()?.data.firstName || '';
+  const ups = reminders(60, 30);
+  const recent = [...state.entries].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, 6);
+
+  if (!state.entries.length) {
+    main.innerHTML = `
+      <div class="page-head"><div><h1>${greet}${name ? ', ' + h(name) : ''} 👋</h1><p class="muted">Welcome to Lifebook, your personal place for everything about you.</p></div></div>
+      <div class="card stack">
+        <h2>Getting started</h2>
+        <ol style="margin:0;padding-left:20px;line-height:1.9">
+          <li><a href="#/new/profile">Fill in <b>About me</b></a>. Start with your country: it sets up the address format, ID types and insurance check.</li>
+          <li>Add your <a href="#/new/contracts">recurring charges & insurances</a> to see your fixed costs and insurance coverage.</li>
+          <li>Add <a href="#/new/contacts">contacts</a> with birthdays. They'll show up under <b>Coming up</b>.</li>
+          <li>Want a topic that's missing? Use <a href="#/request">Plan a new topic</a>.</li>
+          <li>Make a <a href="#/backup">backup</a> regularly. Your data stays on this computer.</li>
+        </ol>
+      </div>
+      <h2 style="margin-top:24px">Your topics</h2>
+      <div class="grid tiles">${TOPICS.map(topicTile).join('')}</div>`;
+    return;
+  }
+
+  main.innerHTML = `
+    <div class="page-head"><div><h1>${greet}${name ? ', ' + h(name) : ''} 👋</h1><p class="muted">${fmtDate(todayISO(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p></div></div>
+    <div class="stack">
+      ${backupNotice()}
+      ${insuranceWarning()}
+      <div class="card">
+        <div class="sec-head"><h2>⏰ Coming up</h2><a class="small" href="#/upcoming">See all</a></div>
+        ${ups.length ? ups.slice(0, 6).map(upRow).join('') : '<p class="muted small" style="margin:0">Nothing due in the next 60 days. Dates like birthdays, expiry dates and notice deadlines will show up here.</p>'}
+      </div>
+      <div class="grid tiles">${TOPICS.map(topicTile).join('')}</div>
+      ${TOPICS.filter(t => t.summary && entriesOf(t.id).length).map(t => `
+        <div class="card"><h3>${t.icon} ${h(t.name)}</h3><div class="stats">${t.summary(entriesOf(t.id)).map(s => `<div><div class="v">${h(s.v)}</div><div class="l">${h(s.l)}</div></div>`).join('')}</div></div>`).join('')}
+      <div class="card">
+        <h2>🕘 Recently updated</h2>
+        <div class="linklist">${recent.map(e => `<a href="#/entry/${e.id}">${topicIcon(TOPIC[e.topic])}<span>${h(title(e))}</span><span class="rel">${fmtDate(e.updated.slice(0, 10))}</span></a>`).join('')}</div>
+      </div>
+    </div>`;
+}
+
+function topicTile(t) {
+  const n = entriesOf(t.id).length;
+  const sub = t.single ? (n ? 'Filled in' : 'Not filled in yet') : `${n} ${n === 1 ? 'entry' : 'entries'}`;
+  return `<a class="card tile" href="#/topic/${t.id}">${topicIcon(t, 'lg')}<div><div style="font-weight:600">${h(t.name)}</div><div class="stat">${sub}</div></div></a>`;
+}
+
+function viewUpcoming() {
+  const ups = reminders(365, 365);
+  const groups = [
+    ['Overdue / past', ups.filter(r => r.diff < 0)],
+    ['Next 30 days', ups.filter(r => r.diff >= 0 && r.diff <= 30)],
+    ['Later this year', ups.filter(r => r.diff > 30)],
+  ].filter(g => g[1].length);
+  main.innerHTML = `
+    <div class="page-head"><div><h1>⏰ Coming up</h1><p class="muted">Birthdays, expiry dates, deadlines and follow-ups from all topics.</p></div></div>
+    ${groups.length ? `<div class="stack">${groups.map(([g, list]) => `<div class="card"><h2>${g}</h2>${list.map(upRow).join('')}</div>`).join('')}</div>`
+      : `<div class="card empty"><div class="big">📅</div><p>No dates yet. Add birthdays, contract deadlines or document expiry dates and they'll appear here.</p></div>`}`;
+}
+
+function entryCard(e) {
+  const t = TOPIC[e.topic];
+  const sub = (t.subtitle?.(e.data) || []).filter(Boolean).join(' · ');
+  const nLinks = (e.related || []).length + linkFieldsOf(t).reduce((s, f) => s + (e.data[f.key] || []).length, 0);
+  const prog = t.progressField ? Number(e.data[t.progressField]) || 0 : null;
+  return `<a class="card ecard" href="#/entry/${e.id}">
+    <div class="t">${h(title(e))}</div>
+    ${sub ? `<div class="m">${h(sub)}</div>` : ''}
+    ${prog !== null ? `<div class="progress" title="${prog}%"><div style="width:${prog}%"></div></div>` : ''}
+    ${(e.tags || []).length ? `<div class="chips" style="margin-top:8px">${e.tags.map(x => `<span class="chip tag">#${h(x)}</span>`).join('')}</div>` : ''}
+    <div class="foot">${e.fileCount ? `<span>📎 ${e.fileCount}</span>` : ''}${nLinks ? `<span>🔗 ${nLinks}</span>` : ''}<span style="margin-left:auto">Updated ${fmtDate(e.updated.slice(0, 10))}</span></div>
+  </a>`;
+}
+
+async function viewTopic(t, q) {
+  if (t.single) {
+    const e = entriesOf(t.id)[0];
+    if (e) return viewEntry(e);
+    main.innerHTML = `
+      <div class="page-head"><div style="display:flex;gap:14px;align-items:center">${topicIcon(t, 'lg')}<div><h1>${h(t.name)}</h1><p class="muted" style="margin:0">${h(t.description)}</p></div></div></div>
+      <div class="card empty"><div class="big">${t.icon}</div><p>Nothing here yet.</p><a class="btn primary" href="#/new/${t.id}">✏️ Fill it in</a></div>`;
+    return;
+  }
+  const all = entriesOf(t.id);
+  const filterF = t.fields.find(f => f.key === t.filterField);
+  const filter = q.get('f') || '';
+  const sort = q.get('sort') || t.defaultSort || 'updated';
+  let list = all.filter(e => !filter || e.data[t.filterField] === filter);
+  const [sk, sf] = sort.split(':');
+  list.sort((a, b) =>
+    sk === 'title' ? title(a).localeCompare(title(b)) :
+    sk === 'date' ? (b.data[sf] || '').localeCompare(a.data[sf] || '') :
+    b.updated.localeCompare(a.updated));
+  const dateFields = t.fields.filter(f => f.type === 'date');
+  const qs = (patch) => { const p = new URLSearchParams({ f: filter, sort, ...patch }); [...p].forEach(([k, v]) => !v && p.delete(k)); const s = p.toString(); return `#/topic/${t.id}${s ? '?' + s : ''}`; };
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div style="display:flex;gap:14px;align-items:center">${topicIcon(t, 'lg')}<div><h1>${h(t.name)}</h1><p class="muted" style="margin:0">${h(t.description)}</p></div></div>
+      <div class="actions">${t.headerActions?.() || ''}<a class="btn primary" href="#/new/${t.id}${filter ? '?' + encodeURIComponent(t.filterField) + '=' + encodeURIComponent(filter) : ''}">＋ New entry</a></div>
+    </div>
+    ${t.summary && all.length ? `<div class="card" style="margin-bottom:16px"><div class="stats">${t.summary(all).map(s => `<div><div class="v">${h(s.v)}</div><div class="l">${h(s.l)}</div></div>`).join('')}</div></div>` : ''}
+    ${all.length ? `
+    <div class="toolbar">
+      ${filterF ? `<div class="seg">${['', ...optionsOf(filterF, {})].map(o => `<button data-act="go" data-href="${h(qs({ f: optVal(o) }))}" class="${optVal(o) === filter ? 'on' : ''}">${o ? h(optLabel(o)) : 'All'}</button>`).join('')}</div>` : ''}
+      <input type="search" id="tfilter" placeholder="Filter ${h(t.name.toLowerCase())}…" style="margin-left:auto">
+      <select id="tsort">
+        <option value="updated">Recently updated</option>
+        <option value="title">Name A–Z</option>
+        ${dateFields.map(f => `<option value="date:${f.key}">${h(lbl(f, {}))} (newest)</option>`).join('')}
+      </select>
+    </div>` : ''}
+    ${list.length ? `<div class="grid cards">${list.map(entryCard).join('')}</div>` :
+      `<div class="card empty"><div class="big">${t.icon}</div><p>${all.length ? 'No entries match this filter.' : 'No entries yet.'}</p>${all.length ? '' : `<a class="btn primary" href="#/new/${t.id}">Add the first one</a>`}</div>`}`;
+
+  const sel = $('#tsort'); if (sel) { sel.value = sort; sel.onchange = () => go(qs({ sort: sel.value })); }
+  const tf = $('#tfilter');
+  if (tf) tf.oninput = () => {
+    const v = tf.value.toLowerCase();
+    document.querySelectorAll('.grid.cards .ecard').forEach((el, i) => el.style.display = !v || haystack(list[i]).includes(v) ? '' : 'none');
+  };
+}
+
+function displayValue(f, v, d = {}) {
+  if (v === '' || v == null || v === false || (Array.isArray(v) && !v.length)) return '';
+  switch (f.type) {
+    case 'date': return noYear(v) ? h(fmtDate(v)) : `${h(fmtDate(v))} <span class="muted small">(${relDays(daysBetween(todayISO(), v))})</span>`;
+    case 'money': return h(fmtMoney(v));
+    case 'number': return h(v) + (f.unit ? ' ' + h(f.unit) : '');
+    case 'checkbox': return 'Yes';
+    case 'phone': return `<a href="tel:${h(v)}">${h(v)}</a>`;
+    case 'email': return `<a href="mailto:${h(v)}">${h(v)}</a>`;
+    case 'url': { const u = /^https?:\/\//i.test(v) ? v : 'https://' + v; return `<a href="${h(u)}" target="_blank" rel="noopener">${h(v)} ↗</a>`; }
+    case 'country': { const c = COUNTRIES[v]; return c ? `${c.flag} ${h(c.name)}` : h(v); }
+    case 'select': { const o = (optionsOf(f, d) || []).find(o => optVal(o) === v); return `<span class="chip">${h(o ? optLabel(o) : v)}</span>`; }
+    case 'rating': return `<span title="${v}/5">${'★'.repeat(v)}<span class="muted">${'★'.repeat(5 - v)}</span></span>`;
+    case 'progress': return `<div style="display:flex;gap:10px;align-items:center"><div class="progress" style="flex:1;max-width:260px"><div style="width:${v}%"></div></div><b>${v}%</b></div>`;
+    case 'link': return `<div class="chips">${v.map(byId).filter(Boolean).map(x => `<a class="chip" href="#/entry/${x.id}">${TOPIC[x.topic].icon} ${h(title(x))}</a>`).join('')}</div>`;
+    case 'group': return v.map(r => `<div class="grow-view">${f.fields.map(sf => { const x = displayValue(sf, r[sf.key], d); return x ? `<span><span class="muted small">${h(sf.label)}:</span> ${x}</span>` : ''; }).join('')}</div>`).join('');
+    default: return h(v);
+  }
+}
+
+async function viewEntry(e) {
+  const t = TOPIC[e.topic];
+  const d = e.data;
+  const related = (e.related || []).map(byId).filter(Boolean);
+  const back = backlinks(e.id);
+  const sections = sectionsOf(t, d).map(s => {
+    const rows = s.fields.filter(f => !['custom', 'hidden'].includes(f.type) && !f.hideInDetail)
+      .map(f => [f, displayValue(f, d[f.key], d)]).filter(([, v]) => v);
+    const custom = s.fields.filter(f => f.type === 'custom' && f.detail).map(f => f.detail(e)).join('');
+    const extra = t.sectionExtra?.[s.name]?.(e) || '';
+    const body = (rows.length ? `<div class="dl">${rows.map(([f, v]) => `<div class="k">${h(lbl(f, d))}</div><div class="v">${v}</div>`).join('')}</div>` : '') + extra + custom;
+    const editable = s.fields.some(f => !['custom', 'hidden'].includes(f.type));
+    return `<div class="card">
+      ${s.name ? `<div class="sec-head"><h2>${h(s.name)}</h2>${editable ? `<a class="btn sm" href="#/edit/${e.id}?sec=${slug(s.name)}">✏️ Edit</a>` : ''}</div>` : ''}
+      ${body || `<p class="muted small" style="margin:0">Nothing filled in yet. <a href="#/edit/${e.id}?sec=${slug(s.name)}">Add it</a></p>`}
+    </div>`;
+  });
+  main.innerHTML = `
+    <div class="page-head">
+      <div style="display:flex;gap:14px;align-items:center">${topicIcon(t, 'lg')}<div>
+        <div class="small muted"><a href="#/topic/${t.id}">${h(t.name)}</a></div>
+        <h1>${h(title(e))}</h1></div></div>
+      <div class="actions"><a class="btn primary" href="#/edit/${e.id}">✏️ Edit${t.single ? ' everything' : ''}</a><button class="btn danger" data-act="delete" data-id="${e.id}">Delete</button></div>
+    </div>
+    <div class="stack">
+      ${sections.join('')}
+      ${(e.tags || []).length ? `<div class="chips">${e.tags.map(x => `<a class="chip tag" href="#/tag/${encodeURIComponent(x)}">#${h(x)}</a>`).join('')}</div>` : ''}
+      <div class="card" id="files"><h2>📎 Attachments</h2><p class="muted small">Loading…</p></div>
+      ${related.length || back.length ? `<div class="card"><h2>🔗 Connections</h2>
+        ${related.length ? `<h3 class="muted small">Related</h3><div class="linklist">${related.map(x => `<a href="#/entry/${x.id}">${topicIcon(TOPIC[x.topic])}${h(title(x))}<span class="rel">${h(TOPIC[x.topic].name)}</span></a>`).join('')}</div>` : ''}
+        ${back.length ? `<h3 class="muted small" style="margin-top:10px">Mentioned in</h3><div class="linklist">${back.map(x => `<a href="#/entry/${x.id}">${topicIcon(TOPIC[x.topic])}${h(title(x))}<span class="rel">${h(TOPIC[x.topic].name)}</span></a>`).join('')}</div>` : ''}
+      </div>` : ''}
+      <p class="small muted">Created ${fmtDate(e.created.slice(0, 10))} · Last updated ${new Date(e.updated).toLocaleString()}</p>
+    </div>`;
+  const files = await filesFor(e.id);
+  const box = $('#files'); if (!box) return;
+  box.innerHTML = `<h2>📎 Attachments</h2>` + (files.length ? `<div class="thumbs">${files.map(f => {
+    const u = objURL(f.blob);
+    const isImg = f.type.startsWith('image/');
+    return `<a class="thumb" href="${u}" target="_blank" download="${h(f.name)}" title="${h(f.name)}">${isImg ? `<img src="${u}" alt="">` : `<div class="img">${f.type === 'application/pdf' ? '📕' : '📄'}</div>`}<div class="nm">${h(f.name)}</div></a>`;
+  }).join('')}</div>` : `<p class="muted small" style="margin:0">No files. <a href="#/edit/${e.id}">Edit</a> to attach scans, photos or PDFs (e.g. a scan of your ID).</p>`);
+}
+
+/* ---------- About me: special sections ---------- */
+function formatAddress(d) {
+  const c = countryOf(d);
+  const line1 = c.numberFirst ? [d.houseNo, d.street] : [d.street, d.houseNo];
+  const l1 = line1.filter(Boolean).join(' ');
+  const l2 = d.country === 'US' ? `${d.city || ''}${d.region ? ', ' + d.region : ''} ${d.zip || ''}`.trim()
+    : d.country === 'GB' ? [d.city, (d.zip || '').toUpperCase()].filter(Boolean).join('\n')
+    : [d.zip, d.city].filter(Boolean).join(' ') + (d.region && d.country !== 'US' ? ` ${d.region}` : '');
+  return [l1, l2, c.name !== 'Other country' && (l1 || l2) ? c.name : ''].filter(Boolean).join('\n');
+}
+function verifiedText(v) {
+  if (!v) return '';
+  const [src, date] = v.split('|');
+  return src === 'swisstopo' ? `✅ Verified in the official Swiss building address register (swisstopo), ${fmtDate(date)}`
+    : `✅ Found on OpenStreetMap, ${fmtDate(date)}`;
+}
+function addressDetail(e) {
+  const d = e.data, txt = formatAddress(d);
+  if (!d.street && !d.city) return '';
+  const zipBad = d.zip && countryOf(d).zip && !countryOf(d).zip.test(d.zip);
+  return `<div class="addr">${h(txt)}</div>
+    <div class="actions small" style="margin-top:8px">
+      ${d.addressVerified ? `<span class="ok">${verifiedText(d.addressVerified)}</span>` : `<span class="warn">⚠️ Not verified yet. Use "Check address" when editing.</span>`}
+      ${zipBad ? `<span class="bad">⚠️ ${h(countryOf(d).zipLabel)} should be ${h(countryOf(d).zipHint)}</span>` : ''}
+      <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(txt.replace(/\n/g, ', '))}" target="_blank" rel="noopener">Show on map ↗</a>
+    </div>`;
+}
+function budgetDetail(e) {
+  const d = e.data;
+  const income = Number(d.income) || 0;
+  const rows = BUDGET.map(([k, l, i]) => [`${i} ${l}`, Number(d[k]) || 0]).filter(r => r[1]);
+  const fixed = entriesOf('contracts').filter(isActiveContract).reduce((s, x) => s + monthlyCost(x.data), 0);
+  if (!rows.length && !income && !fixed) return '';
+  const variable = rows.reduce((s, r) => s + r[1], 0);
+  const total = variable + fixed, left = income - total;
+  const pct = v => income ? Math.round(v / income * 100) : 0;
+  const row = (label, v) => `<tr><td>${label}</td><td style="width:35%">${income ? `<div class="bar"><div style="width:${Math.min(100, pct(v))}%"></div></div>` : ''}</td><td class="num muted small">${income ? pct(v) + '%' : ''}</td><td class="num">${h(fmtMoney(v))}</td></tr>`;
+  return `<table class="tbl">
+    ${income ? `<tr><td><b>💼 Net income</b></td><td></td><td></td><td class="num"><b>${h(fmtMoney(income))}</b></td></tr>` : ''}
+    ${rows.map(([l, v]) => row(h(l), v)).join('')}
+    ${row(`🔁 Fixed costs <a class="small" href="#sec-recurring-charges">(recurring charges)</a>`, fixed)}
+    <tr class="total"><td>Total planned</td><td></td><td class="num small">${income ? pct(total) + '%' : ''}</td><td class="num">${h(fmtMoney(total))}</td></tr>
+    ${income ? `<tr><td><b>${left >= 0 ? '✅ Left over' : '⚠️ Over budget'}</b></td><td></td><td></td><td class="num ${left >= 0 ? 'ok' : 'bad'}"><b>${h(fmtMoney(left))}</b></td></tr>` : ''}
+  </table>`;
+}
+const QUICK_ADD = [
+  ['📱 Phone & Internet', { category: 'Phone & Internet', billing: 'Monthly' }],
+  ['🛡️ Insurance', { category: 'Insurance' }],
+  ['🎬 Netflix', { title: 'Netflix', category: 'Streaming & Media', provider: 'Netflix', billing: 'Monthly' }],
+  ['🎵 Spotify', { title: 'Spotify', category: 'Streaming & Media', provider: 'Spotify', billing: 'Monthly' }],
+  ['🤖 Claude', { title: 'Claude', category: 'AI & Software', provider: 'Anthropic (Claude)', billing: 'Monthly' }],
+  ['➕ Other', {}],
+];
+const newContractLink = params => '#/new/contracts?' + new URLSearchParams({ ...params, ret: '#/topic/profile' }).toString();
+function recurringDetail() {
+  const list = entriesOf('contracts').filter(isActiveContract).sort((a, b) => (a.data.category || '').localeCompare(b.data.category || '') || monthlyCost(b.data) - monthlyCost(a.data));
+  const total = list.reduce((s, x) => s + monthlyCost(x.data), 0);
+  const cats = [...new Set(list.map(x => x.data.category || 'Other'))];
+  return `<div id="sec-recurring-charges">
+    ${list.length ? `<table class="tbl">${cats.map(c => {
+      const items = list.filter(x => (x.data.category || 'Other') === c);
+      return `<tr><td colspan="3" class="muted small" style="padding-top:12px"><b>${h(c)}</b></td></tr>` + items.map(x => `<tr>
+        <td><a href="#/entry/${x.id}">${h(title(x))}</a>${x.data.provider ? ` <span class="muted small">· ${h(x.data.provider)}</span>` : ''}</td>
+        <td class="num muted small">${x.data.cost !== '' && x.data.cost != null ? h(fmtMoney(x.data.cost)) + ' / ' + h((x.data.billing || 'Monthly').toLowerCase()) : 'no cost entered'}</td>
+        <td class="num">${h(fmtMoney(monthlyCost(x.data)))}<span class="muted small"> /mo</span></td></tr>`).join('');
+    }).join('')}
+    <tr class="total"><td>Total per month</td><td class="num muted small">${h(fmtMoney(total * 12))} / year</td><td class="num">${h(fmtMoney(total))}</td></tr></table>`
+    : '<p class="muted small" style="margin:0 0 10px">No recurring charges yet.</p>'}
+    <div class="actions" style="margin-top:12px"><span class="small muted">Quick add:</span>${QUICK_ADD.map(([l, p]) => `<a class="btn sm" href="${h(newContractLink(p))}">${l}</a>`).join('')}</div>
+  </div>`;
+}
+function insuranceStatus() {
+  const prof = profileEntry(); if (!prof) return null;
+  const c = countryOf(prof.data);
+  const contracts = entriesOf('contracts').filter(x => x.data.category === 'Insurance' && isActiveContract(x));
+  const skip = prof.data.insuranceSkip || [];
+  const rows = c.insurance.map(i => {
+    const has = contracts.filter(x => x.data.insuranceType === i.key);
+    const st = has.length ? 'covered' : skip.includes(i.key) ? 'skip' : i.level;
+    return { i, has, st };
+  });
+  const unassigned = contracts.filter(x => !c.insurance.some(i => i.key === x.data.insuranceType));
+  return { c, rows, unassigned, prof };
+}
+function insuranceWarning() {
+  const s = insuranceStatus(); if (!s || !s.prof.data.country) return '';
+  const missing = s.rows.filter(r => r.st === 'mandatory');
+  if (!missing.length) return '';
+  return `<div class="notice" style="background:var(--danger-soft);color:var(--danger)"><span>🛡️ Mandatory insurance not recorded yet: ${missing.map(r => h(r.i.name)).join(', ')}</span><a class="btn sm" href="#/topic/profile">Open insurance check</a></div>`;
+}
+function insuranceDetail() {
+  const s = insuranceStatus(); if (!s) return '';
+  const { c, rows, unassigned, prof } = s;
+  if (!prof.data.country) return `<p class="muted small" style="margin:0">Choose your <a href="#/edit/${prof.id}?sec=personal">country of residence</a> to see which insurances are mandatory or common there.</p>`;
+  const icon = { covered: '✅', skip: '➖', mandatory: '❗', conditional: '⚠️', recommended: '💡', optional: '○' };
+  const levelText = { mandatory: 'Mandatory', conditional: 'Mandatory if applicable', recommended: 'Commonly recommended', optional: 'Optional' };
+  const covered = rows.filter(r => r.st === 'covered').length;
+  return `
+    <details class="infobox" style="margin-bottom:12px"><summary style="cursor:pointer"><b>${c.flag} How insurance works in ${h(c.name)}</b></summary>
+      <div style="margin-top:8px">${c.system || `<p>${h(c.insurance[0].note || '')}</p><p class="muted">No detailed guide for this country yet. Ask Claude to add one.</p>`}</div></details>
+    <p class="small muted" style="margin:0 0 6px">${covered} of ${rows.length} covered. Insurances are matched by the <i>Insurance type</i> of your insurance contracts. This is general orientation, not advice. Rules change, so check official sources.</p>
+    ${rows.map(({ i, has, st }) => `
+      <div class="ins-row ${st === 'skip' ? 'skip' : ''}">
+        <div class="st">${icon[st]}</div>
+        <div class="body">
+          <div><b>${h(i.name)}</b> <span class="chip ${i.level}">${levelText[i.level]}</span></div>
+          ${i.note ? `<div class="small muted">${h(i.note)}</div>` : ''}
+          ${has.length ? `<div class="chips" style="margin-top:6px">${has.map(x => `<a class="chip" href="#/entry/${x.id}">${h(x.data.provider || title(x))}${x.data.cost ? ' · ' + h(fmtMoney(monthlyCost(x.data))) + '/mo' : ''}</a>`).join('')}</div>` : ''}
+        </div>
+        <div class="actions">
+          ${has.length ? '' : `<a class="btn sm" href="${h(newContractLink({ title: i.name, category: 'Insurance', insuranceType: i.key }))}">＋ Add</a>
+          <button class="btn sm" data-act="ins-skip" data-k="${i.key}">${st === 'skip' ? 'Undo' : 'Not needed'}</button>`}
+        </div>
+      </div>`).join('')}
+    ${unassigned.length ? `<p class="small muted" style="margin:12px 0 4px">Insurance contracts without a matching type:</p><div class="chips">${unassigned.map(x => `<a class="chip" href="#/edit/${x.id}">${h(title(x))} (set type)</a>`).join('')}</div>` : ''}`;
+}
+
+/* ---------- address lookup (only sends what you type into the search box) ---------- */
+function addressLookupForm(d) {
+  const c = countryOf(d);
+  const src = c.lookup === 'swisstopo' ? 'the official Swiss building address register (swisstopo)' : 'OpenStreetMap (Photon)';
+  return `<span>🔎 Find your address <small>(autocomplete)</small></span>
+    <div class="addr-lookup"><input type="search" id="addrq" placeholder="Start typing, e.g. ${h(c.example)}" autocomplete="off"><div id="addrres" class="addr-res" hidden></div></div>
+    <div class="small muted" style="margin-top:4px">Suggestions come from ${src}. Only the text you type in this box is sent there.</div>`;
+}
+function addressStatusForm(d) {
+  return `<div class="addr-status-row"><span id="addrstatus">${addrStatusHTML(d.addressVerified)}</span><button type="button" class="btn sm" data-act="addr-check">✓ Check address</button></div>`;
+}
+const addrStatusHTML = v => v ? `<span class="ok">${verifiedText(v)}</span>` : `<span class="muted">Not verified</span>`;
+const normAddr = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/str\.?(\s|$)/g, 'strasse$1').replace(/[^a-z0-9]/g, '');
+async function addressSearch(text, cc) {
+  const c = COUNTRIES[cc] || COUNTRIES.OTHER;
+  if (c.lookup === 'swisstopo') {
+    const r = await fetch('https://api3.geo.admin.ch/rest/services/api/SearchServer?type=locations&origins=address&limit=8&searchText=' + encodeURIComponent(text)).then(r => r.json());
+    return (r.results || []).map(x => {
+      const label = x.attrs.label.replace(/<[^>]+>/g, '').trim();
+      const m = label.match(/^(.*)\s(\d{4})\s(.+)$/); if (!m) return null;
+      const sm = m[1].match(/^(.*?)\s+(\d+\s?[a-zA-Z]?(?:\.\d+)?)$/);
+      return { street: sm ? sm[1] : m[1], houseNo: sm ? sm[2] : '', zip: m[2], city: m[3], region: (x.attrs.detail || '').split(' ').pop().toUpperCase(), source: 'swisstopo' };
+    }).filter(Boolean);
+  }
+  const q = cc && cc !== 'OTHER' ? `${text}, ${c.name}` : text;
+  const r = await fetch('https://photon.komoot.io/api/?limit=15&q=' + encodeURIComponent(q)).then(r => r.json());
+  return (r.features || []).map(f => f.properties)
+    .filter(p => !cc || cc === 'OTHER' || (p.countrycode || '').toUpperCase() === cc)
+    .map(p => ({ street: p.street || (p.type === 'street' ? p.name : ''), houseNo: p.housenumber || '', zip: p.postcode || '', city: p.city || p.town || p.village || p.locality || '', region: '', source: 'osm' }))
+    .filter(a => a.street || a.city).slice(0, 8);
+}
+const addrLine = a => `${COUNTRIES[curCountry()]?.numberFirst ? [a.houseNo, a.street] : [a.street, a.houseNo]}`.replace(/,/g, ' ').trim() + (a.zip || a.city ? ', ' : '') + [a.zip, a.city].filter(Boolean).join(' ');
+const curCountry = () => $('#entryform')?.elements.f_country?.value || '';
+let addrTimer, addrResults = [];
+function showAddrResults(list, msg = '') {
+  const box = $('#addrres'); if (!box) return;
+  addrResults = list;
+  box.hidden = !list.length && !msg;
+  box.innerHTML = (msg ? `<div class="small muted" style="padding:8px 12px">${msg}</div>` : '') + list.map((a, i) => `<button type="button" data-act="addr-pick" data-i="${i}">📍 ${h(addrLine(a))}</button>`).join('');
+}
+async function addrInput(v) {
+  clearTimeout(addrTimer);
+  if (v.trim().length < 3) return showAddrResults([]);
+  addrTimer = setTimeout(async () => {
+    try { const list = await addressSearch(v, curCountry()); showAddrResults(list, list.length ? '' : 'No matching address found.'); }
+    catch { showAddrResults([], 'Address lookup is not available right now (offline?). You can still type the address manually.'); }
+  }, 300);
+}
+function addrPick(a) {
+  const f = $('#entryform').elements;
+  f.f_street.value = a.street; f.f_houseNo.value = a.houseNo; f.f_zip.value = a.zip; f.f_city.value = a.city;
+  if (a.region && f.f_region && [...(f.f_region.options || [])].some(o => o.value === a.region)) f.f_region.value = a.region;
+  f.f_addressVerified.value = a.street && a.houseNo ? `${a.source}|${todayISO()}` : '';
+  $('#addrstatus').innerHTML = addrStatusHTML(f.f_addressVerified.value) + (a.houseNo ? '' : ' <span class="warn">Please add your house number.</span>');
+  $('#addrq').value = ''; showAddrResults([]);
+}
+async function addrCheck() {
+  const f = $('#entryform').elements;
+  const a = { street: f.f_street.value.trim(), houseNo: f.f_houseNo.value.trim(), zip: f.f_zip.value.trim(), city: f.f_city.value.trim() };
+  if (!a.street || !a.city && !a.zip) return toast('Enter at least street and postal code or city first');
+  $('#addrstatus').innerHTML = '<span class="muted">Checking…</span>';
+  try {
+    const list = await addressSearch(`${a.street} ${a.houseNo} ${a.zip} ${a.city}`, curCountry());
+    const match = list.find(x => normAddr(x.street) === normAddr(a.street) && normAddr(x.houseNo) === normAddr(a.houseNo) && (!a.zip || x.zip === a.zip || !x.zip));
+    if (match) {
+      f.f_addressVerified.value = `${match.source}|${todayISO()}`;
+      if (!a.zip && match.zip) f.f_zip.value = match.zip;
+      $('#addrstatus').innerHTML = addrStatusHTML(f.f_addressVerified.value);
+    } else {
+      f.f_addressVerified.value = '';
+      $('#addrstatus').innerHTML = `<span class="bad">⚠️ This exact address wasn't found.</span> ${list.length ? 'Did you mean one of these?' : 'Check spelling and house number.'}`;
+      showAddrResults(list);
+      $('#addrq')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  } catch { $('#addrstatus').innerHTML = '<span class="warn">Address check is not available right now (offline?).</span>'; }
+}
+
+/* ---------- form ---------- */
+let formFiles = { pending: [], removed: new Set(), existing: [] };
+let formCtx = null;
+
+function linkBox(name, candidates, selected) {
+  const sel = new Set(selected || []);
+  const list = [...candidates].sort((a, b) => (sel.has(b.id) - sel.has(a.id)) || title(a).localeCompare(title(b)));
+  return `<div class="linkbox" data-link="${name}">
+    ${list.length > 6 ? `<input type="search" class="lb-filter" placeholder="Filter…">` : ''}
+    <div class="lb-list">${list.length ? list.map(e => `<label class="lb-item"><input type="checkbox" name="${name}" value="${e.id}" ${sel.has(e.id) ? 'checked' : ''}><span>${TOPIC[e.topic].icon} ${h(title(e))}</span><small>${h(TOPIC[e.topic].name)}</small></label>`).join('')
+      : `<div class="small muted" style="padding:6px 11px">Nothing to link yet.</div>`}</div></div>`;
+}
+
+function inputFor(f, v, d, n = 'f_' + f.key) {
+  v = v ?? '';
+  const phv = typeof f.placeholder === 'function' ? f.placeholder(d) : f.placeholder;
+  const ph = phv ? ` placeholder="${h(phv)}"` : '';
+  const rr = f.rerender ? ' data-rerender' : '';
+  switch (f.type) {
+    case 'textarea': return `<textarea name="${n}" rows="3"${ph}>${h(v)}</textarea>`;
+    case 'number': return `<input type="number" step="any" name="${n}" value="${h(v)}"${ph}>`;
+    case 'money': return `<input type="number" step="0.01" name="${n}" value="${h(v)}" placeholder="0.00">`;
+    case 'date': return `<input type="date" name="${n}" value="${h(v)}">`;
+    case 'phone': return `<input type="tel" name="${n}" value="${h(v)}"${ph}>`;
+    case 'email': return `<input type="email" name="${n}" value="${h(v)}"${ph}>`;
+    case 'url': return `<input type="text" inputmode="url" name="${n}" value="${h(v)}" placeholder="https://…">`;
+    case 'checkbox': return `<label class="check"><input type="checkbox" name="${n}" ${v ? 'checked' : ''}> Yes</label>`;
+    case 'country': return `<select name="${n}"${rr}><option value="">— choose —</option>${countryOptions.map(o => `<option value="${o.value}" ${o.value === v ? 'selected' : ''}>${h(o.label)}</option>`).join('')}</select>`;
+    case 'select': {
+      const opts = optionsOf(f, d);
+      if (!opts) return `<input type="text" name="${n}" value="${h(v)}"${ph}>`;
+      const known = opts.some(o => optVal(o) === v);
+      return `<select name="${n}"${rr}><option value="">—</option>${opts.map(o => `<option value="${h(optVal(o))}" ${optVal(o) === v ? 'selected' : ''}>${h(optLabel(o))}</option>`).join('')}${v && !known ? `<option selected value="${h(v)}">${h(v)}</option>` : ''}</select>`;
+    }
+    case 'rating': return `<select name="${n}"><option value="">—</option>${[1, 2, 3, 4, 5].map(i => `<option value="${i}" ${+v === i ? 'selected' : ''}>${'★'.repeat(i)}${'☆'.repeat(5 - i)}</option>`).join('')}</select>`;
+    case 'progress': return `<div class="rangewrap"><input type="range" min="0" max="100" step="5" name="${n}" value="${+v || 0}" oninput="this.nextElementSibling.textContent=this.value+'%'"><b>${+v || 0}%</b></div>`;
+    case 'link': return linkBox(n, state.entries.filter(e => f.to.includes(e.topic)), v);
+    case 'group': {
+      const rows = Array.isArray(v) ? v : [];
+      return `<div class="group" data-group="${f.key}">${rows.map((r, i) => `<div class="grow"><div class="grow-fields">${f.fields.map(sf =>
+        `<label class="field"><span>${h(sf.label)}</span>${inputFor(sf, r[sf.key], d, `g_${f.key}_${i}_${sf.key}`)}</label>`).join('')}</div>
+        <button type="button" class="btn sm danger" data-act="grow-del" data-g="${f.key}" data-i="${i}" title="Remove">✕</button></div>`).join('')}
+        <button type="button" class="btn sm" data-act="grow-add" data-g="${f.key}">＋ ${h(f.addLabel || 'Add')}</button></div>`;
+    }
+    default: {
+      const sug = f.suggest?.(d) || [];
+      return `<input type="text" name="${n}" value="${h(v)}"${ph}${sug.length ? ` list="dl_${f.key}" autocomplete="off"` : ''}>${sug.length ? `<datalist id="dl_${f.key}">${sug.map(s => `<option value="${h(s)}">`).join('')}</datalist>` : ''}`;
+    }
+  }
+}
+const parseVal = (f, v) => ['number', 'money', 'rating', 'progress'].includes(f.type) ? (v === '' ? '' : Number(v)) : v;
+
+/* read the visible inputs; fields that are currently hidden keep their previous value */
+function readForm(form, t, base) {
+  const fd = new FormData(form);
+  const d = { ...base };
+  for (const f of t.fields) {
+    const n = 'f_' + f.key;
+    if (f.type === 'custom') continue;
+    if (f.type === 'group') {
+      const el = form.querySelector(`.group[data-group="${f.key}"]`); if (!el) continue;
+      d[f.key] = [...el.querySelectorAll('.grow')].map((row, i) => Object.fromEntries(f.fields.map(sf => [sf.key, parseVal(sf, String(fd.get(`g_${f.key}_${i}_${sf.key}`) ?? '').trim())])));
+      continue;
+    }
+    if (f.type === 'link') { if (form.querySelector(`[data-link="${n}"]`)) d[f.key] = fd.getAll(n); continue; }
+    if (!form.elements[n]) continue;
+    if (f.type === 'checkbox') { d[f.key] = fd.has(n); continue; }
+    d[f.key] = parseVal(f, String(fd.get(n) ?? '').trim());
+  }
+  return d;
+}
+
+async function viewForm(t, e, q = new URLSearchParams()) {
+  const data = e ? structuredClone(e.data) : Object.fromEntries(t.fields.filter(f => f.type !== 'custom')
+    .map(f => [f.key, ['group', 'link'].includes(f.type) ? [] : (q.get(f.key) ?? f.default ?? '')]));
+  formFiles = { pending: [], removed: new Set(), existing: e ? await filesFor(e.id) : [] };
+  formCtx = { t, e, data, ret: q.get('ret') || '' };
+  renderForm({ tags: (e?.tags || []).join(', '), related: e?.related || [] });
+  const sec = q.get('sec');
+  if (sec) setTimeout(() => document.getElementById('fsec-' + sec)?.scrollIntoView({ behavior: 'smooth' }), 30);
+}
+
+function renderForm(extras) {
+  const { t, e, data: d } = formCtx;
+  const wide = f => ['textarea', 'link', 'progress', 'group', 'custom'].includes(f.type);
+  const sectionHTML = sectionsOf(t, d).map(s => {
+    let html = '', buf = [];
+    const flush = () => { if (buf.length) { html += `<div class="grid2">${buf.join('')}</div>`; buf = []; } };
+    for (const f of s.fields) {
+      if (f.type === 'hidden') { html += `<input type="hidden" name="f_${f.key}" value="${h(d[f.key])}">`; continue; }
+      if (f.type === 'custom') { if (f.form) { flush(); html += `<div class="field">${f.form(d)}</div>`; } continue; }
+      const tag = wide(f) ? 'div' : 'label';
+      const remind = f.remind ? ` <small>⏰ ${f.remind === 'yearly' ? 'yearly reminder' : 'reminder'}</small>` : '';
+      const block = `<${tag} class="field"><span>${h(lbl(f, d))}${f.unit ? ` <small>(${h(f.unit)})</small>` : ''}${f.required ? ' *' : ''}${remind}</span>${inputFor(f, d[f.key], d)}</${tag}>`;
+      if (wide(f)) { flush(); html += block; } else { buf.push(block); if (buf.length === 2) flush(); }
+    }
+    flush();
+    const note = t.sectionNotes?.[s.name]?.(d);
+    return `<section class="fsec" id="fsec-${slug(s.name)}">${s.name ? `<h2>${h(s.name)}</h2>` : ''}${note ? `<p class="sec-note">${h(note)}</p>` : ''}${html}</section>`;
+  }).join('');
+  const tags = allTags().map(x => x[0]);
+  const cancel = formCtx.ret || (e ? '#/entry/' + e.id : '#/topic/' + t.id);
+  main.innerHTML = `
+    <div class="page-head"><div style="display:flex;gap:14px;align-items:center">${topicIcon(t, 'lg')}<div>
+      <div class="small muted"><a href="#/topic/${t.id}">${h(t.name)}</a></div>
+      <h1>${!e ? (t.single ? 'Fill in ' + h(t.name) : 'New entry') : 'Edit ' + h(title(e))}</h1></div></div></div>
+    <form id="entryform" class="card form" novalidate autocomplete="off">
+      ${sectionHTML}
+      <section class="fsec" id="fsec-more"><h2>Tags, links & files</h2>
+      <label class="field"><span>Tags <small>separate with commas, e.g. important, 2026, family</small></span>
+        <input type="text" name="tags" value="${h(extras.tags)}" list="taglist" autocomplete="off">
+        <datalist id="taglist">${tags.map(x => `<option value="${h(x)}">`).join('')}</datalist></label>
+      <div class="field"><span>Related entries <small>connect this with anything in other topics</small></span>
+        ${linkBox('related', state.entries.filter(x => x.id !== e?.id), extras.related)}</div>
+      <div class="field"><span>Attachments <small>photos, scans, PDFs (stored in this browser)</small></span>
+        <div id="filelist"></div>
+        <div class="actions" style="margin-top:6px">
+          <label class="btn sm">📎 Add files or photos<input type="file" id="fileinput" multiple hidden></label>
+          <label class="btn sm">📷 Take photo<input type="file" id="camerainput" accept="image/*" capture="environment" hidden></label>
+        </div>
+        <div class="small muted" style="margin-top:4px">Large photos are reduced automatically (max. 2400 px) to save space and sync faster.</div></div>
+      </section>
+      <div class="sticky-actions actions">
+        <button class="btn primary" type="button" data-act="save">💾 Save</button>
+        <a class="btn" href="${h(cancel)}">Cancel</a>
+      </div>
+    </form>`;
+  renderFileList();
+  $('#entryform').onsubmit = ev => ev.preventDefault();
+}
+
+/* rebuild the form (e.g. after country/gender change) without losing typed values */
+function rerenderForm(mutate) {
+  const form = $('#entryform');
+  formCtx.data = readForm(form, formCtx.t, formCtx.data);
+  const extras = { tags: form.elements.tags.value, related: new FormData(form).getAll('related') };
+  mutate?.(formCtx.data);
+  const y = window.scrollY, focusName = document.activeElement?.name;
+  renderForm(extras);
+  window.scrollTo(0, y);
+  if (focusName) $('#entryform').elements[focusName]?.focus?.({ preventScroll: true });
+}
+
+function renderFileList() {
+  const el = $('#filelist'); if (!el) return;
+  const rows = [
+    ...formFiles.existing.map(f => `<div class="file-row ${formFiles.removed.has(f.id) ? 'removed' : ''}">📎 ${h(f.name)} <span class="muted small">${fmtSize(f.size)}</span> <button type="button" class="link-btn" data-act="toggle-file" data-id="${f.id}">${formFiles.removed.has(f.id) ? 'Undo' : 'Remove'}</button></div>`),
+    ...formFiles.pending.map((f, i) => `<div class="file-row">🆕 ${h(f.name)} <span class="muted small">${fmtSize(f.size)}</span> <button type="button" class="link-btn" data-act="drop-pending" data-i="${i}">Remove</button></div>`),
+  ];
+  el.innerHTML = rows.join('') || '<div class="muted small">No files attached.</div>';
+}
+
+async function saveForm() {
+  const form = $('#entryform');
+  const { t, e: existing } = formCtx;
+  const data = readForm(form, t, formCtx.data);
+  for (const f of t.fields) {
+    if (f.required && visible(f, data) && !data[f.key]) {
+      toast(`Please fill in "${lbl(f, data)}"`); form.elements['f_' + f.key]?.focus(); return;
+    }
+  }
+  if (t.id === 'profile') {
+    const c = countryOf(data);
+    if (data.zip && c.zip && !c.zip.test(data.zip) && !await ask(`The ${c.zipLabel.toLowerCase()} "${data.zip}" doesn't look valid for ${c.name} (expected ${c.zipHint}). Save anyway?`)) return;
+    data.ids = (data.ids || []).filter(r => r.type || r.number || r.expiry);
+  }
+  const fd = new FormData(form);
+  const tags = [...new Set(String(fd.get('tags') || '').split(/[,#]/).map(s => s.trim().toLowerCase()).filter(Boolean))];
+  const now = new Date().toISOString();
+  const entry = existing
+    ? Object.assign(existing, { data, tags, related: fd.getAll('related') })
+    : { id: uid(), topic: t.id, data, tags, related: fd.getAll('related'), created: now, updated: now };
+
+  for (const id of formFiles.removed) await dbDel('files', id);
+  await tombstone('file', [...formFiles.removed]);
+  for (const f of formFiles.pending) await dbPut('files', { id: uid(), entryId: entry.id, name: f.name, type: f.type || 'application/octet-stream', size: f.size, blob: f, added: now });
+  entry.fileCount = formFiles.existing.length - formFiles.removed.size + formFiles.pending.length;
+
+  await saveEntry(entry);
+  if (!existing) state.entries.push(entry);
+  toast('Saved ✓');
+  go(formCtx.ret || '#/entry/' + entry.id);
+}
+
+async function deleteEntry(id) {
+  const e = byId(id); if (!e) return;
+  if (!await ask(`Delete "${title(e)}"? This also removes its attachments.`)) return;
+  const files = await filesFor(id);
+  for (const f of files) await dbDel('files', f.id);
+  await dbDel('entries', id);
+  await tombstone('entry', [id]);
+  await tombstone('file', files.map(f => f.id));
+  state.entries = state.entries.filter(x => x.id !== id);
+  scheduleSync();
+  toast('Deleted');
+  go('#/topic/' + e.topic);
+}
+
+/* ---------- search & tags ---------- */
+function flatValues(t, d) {
+  return t.fields.flatMap(f => f.type === 'group' ? (d[f.key] || []).flatMap(r => Object.values(r)) : ['link', 'custom', 'hidden'].includes(f.type) ? [] : [d[f.key]])
+    .filter(v => v !== '' && v != null && typeof v !== 'object');
+}
+function haystack(e) {
+  const t = TOPIC[e.topic];
+  if (!e._hay || e._hayAt !== e.updated) {
+    e._hay = [title(e), t.name, ...flatValues(t, e.data), ...(e.tags || [])].join(' • ').toLowerCase();
+    e._hayAt = e.updated;
+  }
+  return e._hay;
+}
+function highlight(text, terms) {
+  let out = h(text);
+  terms.forEach(term => { if (term) out = out.replace(new RegExp(h(term).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), m => `<mark>${m}</mark>`); });
+  return out;
+}
+function viewSearch(query) {
+  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const hits = terms.length ? state.entries.filter(e => terms.every(x => haystack(e).includes(x))) : [];
+  const grouped = TOPICS.map(t => [t, hits.filter(e => e.topic === t.id)]).filter(g => g[1].length);
+  main.innerHTML = `
+    <div class="page-head"><div><h1>Search</h1><p class="muted">${terms.length ? `${hits.length} result${hits.length === 1 ? '' : 's'} for “${h(query)}”` : 'Type in the search bar above to search all topics, fields and tags.'}</p></div></div>
+    <div class="stack">${grouped.map(([t, list]) => `
+      <div class="card"><h2>${t.icon} ${h(t.name)}</h2><div class="linklist">${list.map(e => {
+        const f = t.fields.find(f => !['link', 'custom', 'hidden', 'group'].includes(f.type) && f.key !== t.titleField && terms.some(x => String(e.data[f.key] ?? '').toLowerCase().includes(x)));
+        return `<a href="#/entry/${e.id}">${topicIcon(t)}<div><div>${highlight(title(e), terms)}</div>${f ? `<div class="small muted">${h(lbl(f, e.data))}: ${highlight(String(e.data[f.key]).slice(0, 140), terms)}</div>` : ''}</div></a>`;
+      }).join('')}</div></div>`).join('')}
+      ${terms.length && !hits.length ? '<div class="card empty"><div class="big">🔎</div><p>Nothing found.</p></div>' : ''}
+    </div>`;
+}
+function viewTags() {
+  const tags = allTags();
+  main.innerHTML = `
+    <div class="page-head"><div><h1>🏷️ Tags</h1><p class="muted">Tags group entries across all topics, e.g. #important, #tax-2026 or #moving.</p></div></div>
+    <div class="card">${tags.length ? `<div class="chips">${tags.map(([x, n]) => `<a class="chip tag" style="font-size:14px;padding:4px 12px" href="#/tag/${encodeURIComponent(x)}">#${h(x)} <span class="muted">${n}</span></a>`).join('')}</div>`
+      : '<p class="muted" style="margin:0">No tags yet. Add them in the "Tags" field when editing an entry.</p>'}</div>`;
+}
+function viewTag(tag) {
+  const list = state.entries.filter(e => (e.tags || []).includes(tag));
+  main.innerHTML = `
+    <div class="page-head"><div><div class="small muted"><a href="#/tags">Tags</a></div><h1>#${h(tag)}</h1><p class="muted">${list.length} entries</p></div></div>
+    <div class="grid cards">${list.map(e => entryCard(e).replace('<div class="t">', `<div class="small muted">${TOPIC[e.topic].icon} ${h(TOPIC[e.topic].name)}</div><div class="t">`)).join('')}</div>`;
+}
+
+/* ---------- plan a new topic ---------- */
+const WISHES = [
+  ['remind', '⏰ Reminders for dates (deadlines, expiry, anniversaries)'],
+  ['costs', '💰 Track costs and show totals'],
+  ['status', '🚦 Status workflow (e.g. planned → doing → done)'],
+  ['progress', '📈 Progress bar / percentage'],
+  ['rating', '⭐ Ratings or priority'],
+  ['files', '📎 Photos and documents'],
+  ['checklist', '☑️ Checklists inside an entry'],
+  ['charts', '📊 Charts / statistics over time'],
+  ['calendar', '📅 Calendar or timeline view'],
+  ['gallery', '🖼️ Gallery view with pictures'],
+  ['country', '🌍 Fields that depend on my country'],
+];
+function viewRequest() {
+  const saved = state.meta.requests || [];
+  main.innerHTML = `
+    <div class="page-head"><div><h1>✨ Plan a new topic</h1><p class="muted">Describe the topic and what it should do. Lifebook turns this into a description. Copy it and send it to Claude, who builds the new page for you.</p></div></div>
+    <form id="reqform" class="card form">
+      <div class="grid2">
+        <label class="field"><span>Topic name *</span><input type="text" name="name" required placeholder="e.g. Car, Travel, Recipes, Home, Pets"></label>
+        <label class="field"><span>Icon <small>(an emoji)</small></span><input type="text" name="icon" placeholder="🚗" maxlength="8"></label>
+      </div>
+      <fieldset class="field"><legend>How is it organised?</legend>
+        <label class="radio"><input type="radio" name="mode" value="list" checked> Many entries, like a list (trips, recipes, service records…)</label>
+        <label class="radio"><input type="radio" name="mode" value="single"> One single page (like "About me")</label>
+      </fieldset>
+      <label class="field"><span>What information do you want to store? <small>One per line. Hints in brackets help: (date), (remind me), (cost), (choice: A / B / C), (yes/no), (long text)</small></span>
+        <textarea name="fields" rows="8" placeholder="Brand and model&#10;License plate&#10;Fuel type (choice: Petrol / Diesel / Electric)&#10;Next service (date, remind me)&#10;Insurance cost (cost, yearly)&#10;Notes (long text)"></textarea></label>
+      <fieldset class="field"><legend>What should be possible?</legend>
+        <div class="checks">${WISHES.map(([k, l]) => `<label class="check"><input type="checkbox" name="wish" value="${h(l)}"> ${h(l)}</label>`).join('')}</div>
+      </fieldset>
+      <fieldset class="field"><legend>Connect it with existing topics</legend>
+        <div class="checks">${TOPICS.map(t => `<label class="check"><input type="checkbox" name="links" value="${h(t.name)}"> ${t.icon} ${h(t.name)}</label>`).join('')}</div>
+      </fieldset>
+      <label class="field"><span>Anything else? <small>Examples, how you'd use it, what the overview should show…</small></span><textarea name="extra" rows="3"></textarea></label>
+      <div class="actions"><button class="btn primary" type="button" data-act="req-create">Create description</button></div>
+    </form>
+    <div id="reqout" style="margin-top:16px"></div>
+    ${saved.length ? `<div class="card" style="margin-top:16px"><h2>Saved topic plans</h2>${saved.map((r, i) => `
+      <div class="file-row" style="border-bottom:1px solid var(--border);padding:8px 0"><b>${h(r.icon || '•')} ${h(r.name)}</b><span class="muted small">${fmtDate(r.date)}</span>
+      <span style="margin-left:auto" class="actions"><button class="btn sm" data-act="copy-req" data-i="${i}">Copy</button><button class="btn sm danger" data-act="del-req" data-i="${i}">Delete</button></span></div>`).join('')}</div>` : ''}`;
+  $('#reqform').onsubmit = ev => ev.preventDefault();
+}
+async function createRequest() {
+  {
+    const fd = new FormData($('#reqform'));
+    const name = String(fd.get('name')).trim(); if (!name) return toast('Please give the topic a name');
+    const icon = String(fd.get('icon') || '').trim();
+    const fields = String(fd.get('fields') || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const wishes = fd.getAll('wish'), links = fd.getAll('links'), extra = String(fd.get('extra') || '').trim();
+    const text = [
+      `Please add a new topic to my Lifebook app (lifebook.html):`,
+      ``,
+      `Topic: ${icon ? icon + ' ' : ''}${name}`,
+      `Organisation: ${fd.get('mode') === 'single' ? 'one single page' : 'a list with many entries'}`,
+      ``,
+      `Information to store:`,
+      ...(fields.length ? fields.map(f => `- ${f}`) : ['- (please suggest sensible fields)']),
+      ...(wishes.length ? ['', 'What should be possible:', ...wishes.map(w => `- ${w.replace(/^\S+\s/, '')}`)] : []),
+      ...(links.length ? ['', `Connect with: ${links.join(', ')}`] : []),
+      ...(extra ? ['', 'Other wishes:', extra] : []),
+    ].join('\n');
+    const reqs = [{ name, icon, date: todayISO(), text }, ...(state.meta.requests || [])].slice(0, 30);
+    await setMeta('requests', reqs);
+    viewRequest();
+    $('#reqout').innerHTML = `<div class="card"><h2>Your topic description</h2><pre class="out">${h(text)}</pre>
+      <div class="actions"><button class="btn primary" data-act="copy-req" data-i="0">📋 Copy to clipboard</button></div>
+      <p class="small muted">Paste it into your chat with Claude. It's also saved below so you can copy it again later.</p></div>`;
+    $('#reqout').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast('Copied, now paste it to Claude'); }
+  catch { const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Copied'); }
+}
+
+/* ---------- backup & settings ---------- */
+let pendingImport = null;
+function viewBackup() {
+  const last = state.meta.lastBackup;
+  main.innerHTML = `
+    <div class="page-head"><div><h1>💾 Backup & settings</h1><p class="muted">Everything is stored only in this browser on this computer. The only online requests are address suggestions while you type in the address search.</p></div></div>
+    <div class="stack">
+      <div class="card form">
+        <h2>Settings</h2>
+        <div class="grid2">
+          <label class="field"><span>Name for the greeting <small>(default: first name from About me)</small></span><input type="text" id="s_name" value="${h(state.meta.name || '')}"></label>
+          <label class="field"><span>Currency <small>(default: ${h(myCountry().currency || 'none')}, from your country)</small></span><input type="text" id="s_cur" value="${h(state.meta.currency || '')}" maxlength="5" placeholder="${h(myCountry().currency || 'e.g. CHF')}"></label>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Export a backup</h2>
+        <p class="muted small">${last ? 'Last backup: ' + new Date(last).toLocaleString() : 'No backup made yet.'} The file contains all entries and attachments. Store it somewhere safe, such as a USB stick or your cloud drive. It is not encrypted, so treat it like a private document.</p>
+        <button class="btn primary" data-act="export">⬇️ Download backup (.json)</button>
+      </div>
+      <div class="card">
+        <h2>Restore from a backup</h2>
+        <p class="muted small">Choose a Lifebook backup file. You can then merge it with your current data or replace everything.</p>
+        <label class="btn">📂 Choose backup file<input type="file" id="importfile" accept=".json,application/json" hidden></label>
+        <div id="importbox" style="margin-top:12px"></div>
+      </div>
+      <div class="card">
+        <h2>Storage</h2>
+        <p class="muted small" id="storageinfo">${state.entries.length} entries in ${TOPICS.length} topics.</p>
+      </div>
+    </div>`;
+  $('#s_name').onchange = ev => { setMeta('name', ev.target.value.trim()); toast('Saved'); };
+  $('#s_cur').onchange = ev => { setMeta('currency', ev.target.value.trim().toUpperCase()); toast('Saved'); };
+  navigator.storage?.estimate?.().then(est => {
+    const el = $('#storageinfo'); if (el) el.textContent += ` Using about ${fmtSize(est.usage || 0)} of browser storage.`;
+  });
+}
+const blobToDataURL = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+function dataURLToBlob(u) {
+  const [head, b64] = u.split(',');
+  const type = head.match(/data:([^;]+)/)?.[1] || 'application/octet-stream';
+  const bin = atob(b64); const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type });
+}
+async function exportBackup() {
+  toast('Preparing backup…');
+  const files = await dbAll('files');
+  const out = {
+    app: 'lifebook', version: 1, exported: new Date().toISOString(),
+    entries: state.entries.map(clean),
+    files: await Promise.all(files.map(async ({ blob, ...f }) => ({ ...f, data: await blobToDataURL(blob) }))),
+    meta: Object.fromEntries(Object.entries(state.meta).filter(([k]) => k !== 'lastBackup' && !k.startsWith('_'))),
+  };
+  const blob = new Blob([JSON.stringify(out)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `lifebook-backup-${todayISO()}.json`;
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  await setMeta('lastBackup', new Date().toISOString());
+  toast('Backup downloaded ✓');
+  if (currentRoute === '#/backup') viewBackup();
+}
+async function readImport(file) {
+  try {
+    const json = JSON.parse(await file.text());
+    if (json.app !== 'lifebook' || !Array.isArray(json.entries)) throw new Error('not a Lifebook backup');
+    pendingImport = json;
+    $('#importbox').innerHTML = `<div class="notice" style="background:var(--accent-soft);color:var(--text)"><span>Backup from <b>${new Date(json.exported).toLocaleString()}</b>: ${json.entries.length} entries, ${(json.files || []).length} files.</span>
+      <span class="actions"><button class="btn sm" data-act="import-merge">Merge (keep newer)</button><button class="btn sm danger" data-act="import-replace">Replace everything</button></span></div>`;
+  } catch (err) { toast('Could not read file: ' + err.message); }
+}
+async function doImport(replace) {
+  const json = pendingImport; if (!json) return;
+  if (replace && !await ask('Replace ALL current data with this backup? Current entries and files will be removed.')) return;
+  if (replace) {
+    await dbClear('entries');
+    await dbClear('files');
+    state.entries = [];
+  }
+  const touched = new Set();
+  for (const e of json.entries) {
+    const cur = byId(e.id);
+    if (cur && cur.updated >= e.updated) continue;
+    migrate(e);
+    await dbPut('entries', e);
+    if (cur) Object.assign(cur, e, { _hay: null }); else state.entries.push(e);
+    touched.add(e.id);
+    if (cur) for (const f of await filesFor(e.id)) await dbDel('files', f.id);
+  }
+  for (const f of json.files || []) {
+    if (!touched.has(f.entryId)) continue;
+    const { data, ...rest } = f;
+    await dbPut('files', { ...rest, blob: dataURLToBlob(data) });
+  }
+  for (const [k, v] of Object.entries(json.meta || {})) if (!k.startsWith('_') && (replace || state.meta[k] === undefined)) await setMeta(k, v);
+  pendingImport = null;
+  scheduleSync();
+  toast(`Imported ${touched.size} entries ✓`);
+  go('#/');
+}
+
+/* =====================================================================
+   MICROSOFT SIGN-IN (OAuth 2 with PKCE, no extra libraries)
+   Used for OneDrive sync and reading Outlook/Hotmail emails.
+   ===================================================================== */
+const CLIENT_ID = ''; // Microsoft app (client) ID; can also be entered under "Phone & sync"
+const AUTH_URL = 'https://login.microsoftonline.com/consumers/oauth2/v2.0';
+const SCOPES = 'openid profile offline_access User.Read Files.ReadWrite.AppFolder Mail.Read';
+const clientId = () => state.meta._clientId || CLIENT_ID;
+const canSignIn = () => location.protocol === 'https:' || location.hostname === 'localhost';
+const redirectUri = () => location.origin + location.pathname;
+class NeedLogin extends Error { constructor() { super('Please reconnect your Microsoft account'); } }
+class Conflict extends Error { constructor() { super('Changed on another device'); } }
+const b64url = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const toB64 = bytes => { let s = ''; const u = new Uint8Array(bytes); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
+const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+async function signIn(prompt) {
+  if (!canSignIn()) return toast('Sign-in only works from your online Lifebook address (https://…)');
+  if (!clientId()) return toast('Enter the Microsoft app ID first');
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  const st = b64url(crypto.getRandomValues(new Uint8Array(16)));
+  localStorage.setItem('lb_pkce', JSON.stringify({ verifier, state: st, route: currentRoute, silent: prompt === 'none' }));
+  const p = new URLSearchParams({ client_id: clientId(), response_type: 'code', redirect_uri: redirectUri(), scope: SCOPES, code_challenge: challenge, code_challenge_method: 'S256', state: st, response_mode: 'query' });
+  if (prompt) p.set('prompt', prompt);
+  const hint = state.meta._account?.email; if (hint) p.set('login_hint', hint);
+  location.href = AUTH_URL + '/authorize?' + p;
+}
+/* called on start-up: finishes a sign-in when Microsoft sends the user back with ?code=… */
+async function handleRedirect() {
+  const q = new URLSearchParams(location.search);
+  if (!q.get('code') && !q.get('error')) return;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('lb_pkce') || '{}'); localStorage.removeItem('lb_pkce'); } catch { }
+  currentRoute = saved.route || '#/';
+  try { history.replaceState(null, '', redirectUri() + currentRoute); } catch { }
+  if (q.get('error')) {
+    if (saved.silent) setSync('login');
+    else toast('Microsoft sign-in was cancelled or failed: ' + (q.get('error_description') || q.get('error')).slice(0, 160));
+    return;
+  }
+  if (!saved.state || q.get('state') !== saved.state) return toast('Sign-in check failed, please try again');
+  try {
+    await tokenRequest({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: redirectUri(), code_verifier: saved.verifier });
+    const me = await (await graph('/me?$select=displayName,userPrincipalName,mail')).json();
+    await setMeta('_account', { name: me.displayName || '', email: me.mail || me.userPrincipalName || '' });
+    if (!saved.silent) toast('Microsoft account connected ✓');
+  } catch (e) { toast('Sign-in failed: ' + e.message); }
+}
+async function tokenRequest(params) {
+  const r = await fetch(AUTH_URL + '/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: clientId(), scope: SCOPES, ...params }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error_description || j.error || 'token error');
+  await setMeta('_auth', { access: j.access_token, refresh: j.refresh_token || state.meta._auth?.refresh, exp: Date.now() + (j.expires_in - 120) * 1000 });
+}
+async function getToken() {
+  const a = state.meta._auth;
+  if (!a) throw new NeedLogin();
+  if (a.access && a.exp > Date.now()) return a.access;
+  if (a.refresh) {
+    try { await tokenRequest({ grant_type: 'refresh_token', refresh_token: a.refresh }); return state.meta._auth.access; } catch { }
+  }
+  await setMeta('_auth', { ...a, access: null, refresh: null });
+  throw new NeedLogin();
+}
+const tokenUsable = () => { const a = state.meta._auth; return !!(a && ((a.access && a.exp > Date.now()) || a.refresh)); };
+async function graph(path, { method = 'GET', body, headers = {} } = {}) {
+  const tok = await getToken();
+  const r = await fetch(path.startsWith('http') ? path : 'https://graph.microsoft.com/v1.0' + path, { method, body, headers: { Authorization: 'Bearer ' + tok, ...headers } });
+  if (r.status === 401) { await setMeta('_auth', { ...state.meta._auth, exp: 0 }); throw new NeedLogin(); }
+  return r;
+}
+async function gErr(r) { let m = r.status + ''; try { const j = await r.json(); m = j.error?.message || m; } catch { } return new Error('Microsoft: ' + m); }
+async function disconnectMicrosoft() {
+  if (!await ask('Disconnect this device from your Microsoft account? Your Lifebook data stays on this device.', 'Disconnect')) return;
+  for (const k of ['_auth', '_account', '_syncKey', '_lastSync']) await setMeta(k, null);
+  setSync('off'); viewSync();
+}
+
+/* =====================================================================
+   ENCRYPTION — AES-256-GCM, key derived from your sync password (PBKDF2).
+   Only encrypted data is uploaded; the password never leaves the device.
+   ===================================================================== */
+const TE = new TextEncoder(), TD = new TextDecoder();
+async function deriveKey(password, salt, iterations = 310000) {
+  const base = await crypto.subtle.importKey('raw', TE.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function encryptBytes(key, bytes) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, bytes));
+  const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12);
+  return out;
+}
+async function decryptBytes(key, buf) {
+  const u = new Uint8Array(buf);
+  return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: u.slice(0, 12) }, key, u.slice(12)));
+}
+
+/* =====================================================================
+   ONEDRIVE — files live in the private app folder "Apps/<app name>"
+   ===================================================================== */
+const SYNC_FILE = 'lifebook-data.bin', KEY_FILE = 'lifebook-key.json';
+const oneDrive = {
+  async getItem(path) {
+    const r = await graph(`/me/drive/special/approot:/${path}?select=id,eTag,size,@microsoft.graph.downloadUrl`);
+    if (r.status === 404) return null;
+    if (!r.ok) throw await gErr(r);
+    return r.json();
+  },
+  async download(item) {
+    const r = await fetch(item['@microsoft.graph.downloadUrl']);
+    if (!r.ok) throw new Error('Download from OneDrive failed (' + r.status + ')');
+    return r.arrayBuffer();
+  },
+  async upload(path, bytes, etag) {
+    if (bytes.byteLength <= 4000000) {
+      const r = await graph(`/me/drive/special/approot:/${path}:/content`, { method: 'PUT', body: bytes, headers: { 'Content-Type': 'application/octet-stream', ...(etag ? { 'If-Match': etag } : {}) } });
+      if (r.status === 412) throw new Conflict();
+      if (!r.ok) throw await gErr(r);
+      return r.json();
+    }
+    // large files: resumable upload in 5 MB pieces
+    const s = await graph(`/me/drive/special/approot:/${path}:/createUploadSession`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'replace' } }) });
+    if (!s.ok) throw await gErr(s);
+    const { uploadUrl } = await s.json();
+    const CH = 5 * 1024 * 1024; let res;
+    for (let i = 0; i < bytes.byteLength; i += CH) {
+      const part = bytes.slice(i, i + CH);
+      res = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${i}-${i + part.byteLength - 1}/${bytes.byteLength}` }, body: part });
+      if (!res.ok) throw new Error('Upload to OneDrive failed (' + res.status + ')');
+    }
+    return res.json();
+  },
+  async remove(path) {
+    const r = await graph(`/me/drive/special/approot:/${path}`, { method: 'DELETE' });
+    if (!r.ok && r.status !== 404) throw await gErr(r);
+  },
+};
+const driveImpl = () => window.__testDrive || oneDrive; // a test double can be plugged in for local testing
+const msConnected = () => !!(window.__testDrive || state.meta._account);
+const syncConfigured = () => msConnected() && !!state.meta._syncKey;
+
+async function setSyncPassword() {
+  const pw1 = $('#pw1')?.value || '', pw2 = $('#pw2');
+  const creating = !!pw2;
+  if (creating && pw1.length < 10) return toast('Please use at least 10 characters');
+  if (creating && pw1 !== pw2.value) return toast('The passwords don’t match');
+  if (!pw1) return toast('Enter your sync password');
+  const btn = $('[data-act=key-set]'); if (btn) { btn.disabled = true; btn.textContent = 'Working…'; }
+  try {
+    const d = driveImpl();
+    const item = await d.getItem(KEY_FILE);
+    let key;
+    if (item) {
+      const kf = JSON.parse(TD.decode(await d.download(item)));
+      key = await deriveKey(pw1, fromB64(kf.salt), kf.iterations);
+      try { if (TD.decode(await decryptBytes(key, fromB64(kf.check))) !== 'lifebook-ok') throw 0; }
+      catch { throw new Error('Wrong sync password'); }
+    } else {
+      const salt = crypto.getRandomValues(new Uint8Array(16)), iterations = 310000;
+      key = await deriveKey(pw1, salt, iterations);
+      const check = await encryptBytes(key, TE.encode('lifebook-ok'));
+      await d.upload(KEY_FILE, TE.encode(JSON.stringify({ v: 1, salt: toB64(salt), iterations, check: toB64(check) })));
+    }
+    await setMeta('_syncKey', key);
+    toast('Sync password saved on this device ✓');
+    await syncNow();
+  } catch (e) { toast(e.message); }
+  viewSync();
+}
+
+/* =====================================================================
+   SYNC — merge by "last change wins" per entry; deletions are remembered
+   ===================================================================== */
+let syncState = { s: 'off', msg: '' }, syncTimer = null, syncRunning = null;
+function setSync(s, msg = '') { syncState = { s, msg }; renderSyncChip(); }
+function syncLabel() {
+  if (!msConnected()) return null;
+  if (!state.meta._syncKey) return ['🔑', 'Set sync password'];
+  switch (syncState.s) {
+    case 'syncing': return ['⏳', 'Syncing…'];
+    case 'error': return ['⚠️', 'Sync problem'];
+    case 'login': return ['🔑', 'Reconnect'];
+    default: return ['☁️', state.meta._lastSync ? 'Synced ' + timeAgo(state.meta._lastSync) : 'Not synced yet'];
+  }
+}
+function renderSyncChip() {
+  const el = $('#syncchip'); if (!el) return;
+  const l = syncLabel();
+  el.hidden = !l;
+  if (l) { el.innerHTML = `${l[0]} <span>${h(l[1])}</span>`; el.title = syncState.msg || l[1]; }
+}
+function scheduleSync(delay = 2500) {
+  if (!syncConfigured()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncNow(), delay);
+}
+async function syncNow() {
+  if (!syncConfigured()) return;
+  if (syncRunning) return syncRunning;
+  syncRunning = (async () => {
+    setSync('syncing');
+    try {
+      for (let attempt = 0; ; attempt++) {
+        try { await syncOnce(); break; }
+        catch (e) { if (!(e instanceof Conflict) || attempt >= 2) throw e; }
+      }
+      await setMeta('_lastSync', new Date().toISOString());
+      setSync('idle');
+    } catch (e) {
+      console.error(e);
+      if (e instanceof NeedLogin) setSync('login', e.message);
+      else setSync('error', e.message || String(e));
+    } finally { syncRunning = null; }
+  })();
+  return syncRunning;
+}
+const newer = (a, b) => (!b || (a && a > b)) ? a : b;
+async function syncOnce() {
+  const key = state.meta._syncKey, d = driveImpl(), now = new Date().toISOString();
+  const item = await d.getItem(SYNC_FILE);
+  let remote = { entries: [], deleted: {}, deletedFiles: {}, files: [], settings: null };
+  if (item) remote = { ...remote, ...JSON.parse(TD.decode(await decryptBytes(key, await d.download(item)))) };
+  const remoteJSON = item ? JSON.stringify({ ...remote, savedAt: undefined }) : '';
+
+  // 1. merge deletions and entries
+  const del = { ...remote.deleted }, delF = { ...remote.deletedFiles };
+  for (const [id, t] of Object.entries(state.meta.deleted || {})) del[id] = newer(t, del[id]);
+  for (const [id, t] of Object.entries(state.meta.deletedFiles || {})) delF[id] = newer(t, delF[id]);
+  const merged = new Map(remote.entries.map(e => [e.id, e]));
+  for (const e of state.entries) { const r = merged.get(e.id); if (!r || r.updated < e.updated) merged.set(e.id, clean(e)); }
+  for (const [id, t] of Object.entries(del)) { const e = merged.get(id); if (e && e.updated <= t) merged.delete(id); }
+
+  // 2. apply to this device
+  let changed = false;
+  for (const e of merged.values()) {
+    const loc = byId(e.id);
+    if (!loc) { const copy = structuredClone(e); state.entries.push(copy); await dbPut('entries', copy); changed = true; }
+    else if (loc.updated < e.updated) { Object.assign(loc, structuredClone(e), { _hay: null }); await dbPut('entries', clean(loc)); changed = true; }
+  }
+  for (const e of [...state.entries]) if (!merged.has(e.id)) {
+    state.entries = state.entries.filter(x => x !== e);
+    await dbDel('entries', e.id);
+    for (const f of await filesFor(e.id)) await dbDel('files', f.id);
+    changed = true;
+  }
+
+  // 3. attachments: each file is a separate encrypted blob in "files/"
+  const localFiles = await dbAll('files');
+  const localIds = new Set(localFiles.map(f => f.id));
+  const idx = new Map((remote.files || []).map(f => [f.id, f]));
+  for (const f of [...idx.values()]) if (!merged.has(f.entryId) && !delF[f.id]) delF[f.id] = now;
+  for (const id of Object.keys(delF)) {
+    if (localIds.has(id)) { await dbDel('files', id); localIds.delete(id); changed = true; }
+    if (idx.has(id)) { idx.delete(id); try { await d.remove(`files/${id}.bin`); } catch { } }
+  }
+  for (const f of idx.values()) {
+    if (localIds.has(f.id) || !merged.has(f.entryId)) continue;
+    const it = await d.getItem(`files/${f.id}.bin`);
+    if (!it) continue;
+    const bytes = await decryptBytes(key, await d.download(it));
+    await dbPut('files', { ...f, blob: new Blob([bytes], { type: f.type }) });
+    changed = true;
+  }
+  for (const f of localFiles) {
+    if (idx.has(f.id) || delF[f.id] || !merged.has(f.entryId)) continue;
+    const enc = await encryptBytes(key, new Uint8Array(await f.blob.arrayBuffer()));
+    await d.upload(`files/${f.id}.bin`, enc);
+    const { blob, ...info } = f; idx.set(f.id, info);
+  }
+
+  // 4. settings (name, currency, topic plans): newest wins
+  const localSettings = { updated: state.meta.settingsUpdated || '', ...Object.fromEntries(SYNCED_META.map(k => [k, state.meta[k]])) };
+  let settings = localSettings;
+  if (remote.settings && remote.settings.updated > localSettings.updated) {
+    settings = remote.settings;
+    for (const k of SYNCED_META) { state.meta[k] = settings[k]; await dbPut('meta', { key: k, value: settings[k] }); }
+    state.meta.settingsUpdated = settings.updated; await dbPut('meta', { key: 'settingsUpdated', value: settings.updated });
+    changed = true;
+  }
+
+  // 5. remember merged deletions locally, refresh attachment counts
+  state.meta.deleted = del; await dbPut('meta', { key: 'deleted', value: del });
+  state.meta.deletedFiles = delF; await dbPut('meta', { key: 'deletedFiles', value: delF });
+  if (changed) {
+    const counts = {}; for (const f of await dbAll('files')) counts[f.entryId] = (counts[f.entryId] || 0) + 1;
+    for (const e of state.entries) e.fileCount = counts[e.id] || 0;
+  }
+
+  // 6. upload the merged state if anything differs from what is on OneDrive
+  const payload = { v: 1, entries: [...merged.values()], deleted: del, deletedFiles: delF, files: [...idx.values()], settings };
+  if (JSON.stringify({ ...payload, savedAt: undefined }) !== remoteJSON) {
+    await d.upload(SYNC_FILE, await encryptBytes(key, TE.encode(JSON.stringify({ ...payload, savedAt: now }))), item?.eTag);
+  }
+  // re-render with the new data, but never while a form is open
+  if (changed && !/^#\/(edit|new)\//.test(currentRoute)) route();
+}
+
+function viewSync() {
+  const hosted = canSignIn(), acc = state.meta._account;
+  main.innerHTML = `
+    <div class="page-head"><div><h1>📱 Phone & sync</h1><p class="muted">Use Lifebook on your iPhone and PC with the same data. Everything is encrypted with your own sync password before it is stored in your OneDrive. Microsoft can't read it, and neither can anyone else without the password.</p></div></div>
+    <div class="stack">
+      ${!hosted ? `<div class="notice"><span>💻 This copy is opened as a <b>local file</b>. Microsoft sign-in only works from your online Lifebook address (https://…). Open that address to set up sync.</span></div>` : ''}
+      <div class="card form">
+        <h2>1. Microsoft account</h2>
+        ${acc ? `<p style="margin:0 0 12px">✅ Connected as <b>${h(acc.name)}</b> <span class="muted">(${h(acc.email)})</span></p>
+          ${syncState.s === 'login' ? `<button class="btn primary" data-act="reconnect">🔑 Reconnect</button> ` : ''}<button class="btn sm danger" data-act="ms-disconnect">Disconnect this device</button>`
+        : `<label class="field"><span>Microsoft app ID <small>(Application / client ID of your app registration)</small></span>
+            <input type="text" id="s_client" value="${h(clientId())}" placeholder="00000000-0000-0000-0000-000000000000" autocomplete="off"></label>
+          <p class="small muted">Redirect URI to register (type "Single-page application"): <code>${h(redirectUri())}</code></p>
+          <button class="btn primary" data-act="ms-connect" ${hosted ? '' : 'disabled'}>Connect Microsoft account</button>`}
+      </div>
+      ${acc ? `<div class="card form" id="keycard"><h2>2. Sync password</h2>
+        ${state.meta._syncKey ? `<p style="margin:0 0 12px" class="ok">🔒 Your sync password is remembered on this device.</p><button class="btn sm" data-act="key-forget">Forget on this device</button>`
+          : `<p class="muted small">Checking OneDrive…</p>`}</div>` : ''}
+      ${syncConfigured() ? `<div class="card"><h2>3. Sync</h2>
+        <p style="margin:0 0 6px">${syncState.s === 'error' ? `<span class="bad">⚠️ ${h(syncState.msg)}</span>` : syncState.s === 'login' ? '<span class="warn">🔑 Your Microsoft sign-in expired. Please reconnect.</span>' : state.meta._lastSync ? '☁️ Last synced ' + h(timeAgo(state.meta._lastSync)) : 'Not synced yet'}</p>
+        <p class="small muted">Lifebook syncs automatically when it opens, after every change, and when you come back to it.</p>
+        <button class="btn primary" data-act="sync-now">🔄 Sync now</button></div>` : ''}
+      <div class="card"><h2>📲 Put Lifebook on your iPhone home screen</h2>
+        <ol class="steps">
+          <li>Open ${hosted ? `<code>${h(redirectUri())}</code>` : 'your online Lifebook address'} in <b>Safari</b> on your iPhone.</li>
+          <li>Tap the <b>Share</b> button (square with an arrow) → <b>Add to Home Screen</b> → <b>Add</b>.</li>
+          <li>Open Lifebook from the home screen, connect your Microsoft account and enter the same sync password.</li>
+        </ol></div>
+    </div>`;
+  if (acc && !state.meta._syncKey) checkKeyFile();
+}
+async function checkKeyFile() {
+  const card = $('#keycard'); if (!card) return;
+  try {
+    const exists = !!(await driveImpl().getItem(KEY_FILE));
+    card.innerHTML = `<h2>2. Sync password</h2>` + (exists
+      ? `<p class="muted small">Lifebook data already exists in your OneDrive. Enter the sync password you chose on your other device.</p>
+        <label class="field"><span>Sync password</span><input type="password" id="pw1" autocomplete="current-password"></label>
+        <button class="btn primary" data-act="key-set">Unlock & sync</button>`
+      : `<p class="muted small">Choose a password that encrypts your data. You'll enter it once on each device. <b>Write it down somewhere safe.</b> If you lose it, the synced copy can't be recovered (your local data and backups are not affected).</p>
+        <div class="grid2"><label class="field"><span>New sync password <small>(min. 10 characters)</small></span><input type="password" id="pw1" autocomplete="new-password"></label>
+        <label class="field"><span>Repeat password</span><input type="password" id="pw2" autocomplete="new-password"></label></div>
+        <button class="btn primary" data-act="key-set">Create & start syncing</button>`);
+  } catch (e) {
+    card.innerHTML = `<h2>2. Sync password</h2>` + (e instanceof NeedLogin
+      ? `<p class="warn">🔑 Your Microsoft sign-in expired.</p><button class="btn primary" data-act="reconnect">Reconnect</button>`
+      : `<p class="bad">⚠️ ${h(e.message)}</p>`);
+  }
+}
+
+/* =====================================================================
+   EMAIL (Outlook / Hotmail, read-only)
+   ===================================================================== */
+const localDay = iso => isoOf(new Date(iso));
+let currentMail = null;
+function mailProblem(e) {
+  const box = $('#maillist') || main;
+  box.innerHTML = e instanceof NeedLogin
+    ? `<p class="warn">🔑 Your Microsoft sign-in expired.</p><button class="btn primary" data-act="reconnect">Reconnect</button>`
+    : `<p class="bad">⚠️ ${h(e.message)}</p><p class="small muted">If you connected before email support was added, use "Reconnect" on the Phone & sync page to allow email access.</p>`;
+}
+async function viewMail(q) {
+  if (!state.meta._account) {
+    main.innerHTML = `<div class="page-head"><div><h1>✉️ Email</h1></div></div>
+      <div class="card empty"><div class="big">✉️</div><p>Connect your Microsoft (Hotmail/Outlook) account to search your emails and save them, with attachments, into Lifebook.</p><a class="btn primary" href="#/sync">Set up under Phone & sync</a></div>`;
+    return;
+  }
+  const s = q.get('q') || '';
+  main.innerHTML = `
+    <div class="page-head"><div><h1>✉️ Email</h1><p class="muted">Search your mailbox and save important emails, such as invoices, contracts or confirmations, into <a href="#/topic/documents">Documents & mail</a>. Lifebook only reads; nothing in your mailbox is changed.</p></div></div>
+    <div class="toolbar"><input type="search" id="mailq" placeholder="Search emails, e.g. invoice, Swisscom, insurance…" value="${h(s)}" style="flex:1;min-width:200px"><button class="btn" data-act="mail-search">Search</button></div>
+    <div class="card" id="maillist"><p class="muted small" style="margin:0">Loading emails…</p></div>`;
+  $('#mailq').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); go('#/mail?q=' + encodeURIComponent(ev.target.value)); } };
+  try {
+    const sel = '$select=id,subject,from,receivedDateTime,hasAttachments,bodyPreview&$top=40';
+    const r = await graph('/me/messages?' + sel + (s ? '&$search=' + encodeURIComponent(`"${s.replace(/"/g, '')}"`) : '&$orderby=receivedDateTime%20desc'));
+    if (!r.ok) throw await gErr(r);
+    const list = (await r.json()).value || [];
+    const box = $('#maillist'); if (!box) return;
+    const saved = new Set(entriesOf('documents').map(e => e.data.mailId).filter(Boolean));
+    box.innerHTML = list.length ? list.map(m => `<a class="msg-row" href="#/mail/${encodeURIComponent(m.id)}">
+      <div class="msg-top"><b>${h(m.from?.emailAddress?.name || m.from?.emailAddress?.address || '(unknown sender)')}</b><span class="rel">${saved.has(m.id) ? '📥 saved · ' : ''}${m.hasAttachments ? '📎 ' : ''}${fmtDate(localDay(m.receivedDateTime))}</span></div>
+      <div>${h(m.subject || '(no subject)')}</div><div class="small muted msg-prev">${h(m.bodyPreview || '')}</div></a>`).join('')
+      : '<p class="muted" style="margin:0">No emails found.</p>';
+  } catch (e) { mailProblem(e); }
+}
+async function viewMessage(id) {
+  main.innerHTML = `<div class="page-head"><div><div class="small muted"><a href="#/mail">Email</a></div><h1>Loading…</h1></div></div><div id="maillist"></div>`;
+  try {
+    const eid = encodeURIComponent(id);
+    const r = await graph(`/me/messages/${eid}?$select=subject,from,toRecipients,receivedDateTime,body,hasAttachments`, { headers: { Prefer: 'outlook.body-content-type="text"' } });
+    if (!r.ok) throw await gErr(r);
+    const m = await r.json();
+    let atts = [];
+    if (m.hasAttachments) {
+      const ra = await graph(`/me/messages/${eid}/attachments?$select=id,name,contentType,size,isInline`);
+      if (ra.ok) atts = ((await ra.json()).value || []).filter(a => !a['@odata.type'] || a['@odata.type'] === '#microsoft.graph.fileAttachment');
+    }
+    currentMail = { id, m, atts };
+    const from = m.from?.emailAddress || {};
+    const existing = entriesOf('documents').find(e => e.data.mailId === id);
+    main.innerHTML = `
+      <div class="page-head"><div><div class="small muted"><a href="#/mail">Email</a></div><h1>${h(m.subject || '(no subject)')}</h1>
+        <p class="muted" style="margin:0">From <b>${h(from.name || '')}</b> ${h(from.address ? '<' + from.address + '>' : '')} · ${new Date(m.receivedDateTime).toLocaleString()}</p></div></div>
+      <div class="stack">
+        <div class="card form">
+          <h2>📥 Save to Lifebook</h2>
+          ${existing ? `<p class="ok" style="margin:0 0 10px">Already saved: <a href="#/entry/${existing.id}">${h(title(existing))}</a></p>` : ''}
+          <div class="grid2"><label class="field"><span>Save as</span><select id="mailkind">${['Email', 'Invoice', 'Receipt', 'Letter', 'Contract document', 'Certificate', 'Other'].map(k => `<option>${k}</option>`).join('')}</select></label></div>
+          ${atts.length ? `<div class="field"><span>Attachments to save</span>${atts.map(a => `<label class="check"><input type="checkbox" name="matt" value="${h(a.id)}" ${a.isInline ? '' : 'checked'}> ${h(a.name)} <span class="muted small">${fmtSize(a.size || 0)}</span></label>`).join('')}</div>` : ''}
+          <button class="btn primary" data-act="mail-save">📥 Save to Documents & mail</button>
+          <span class="small muted">Afterwards you can add tags or link it to a contract or contact.</span>
+        </div>
+        <div class="card"><div class="mail-body">${h((m.body?.content || '').trim() || '(empty)')}</div></div>
+      </div>`;
+  } catch (e) { mailProblem(e); }
+}
+async function saveMail() {
+  if (!currentMail) return;
+  const { id, m } = currentMail, eid = encodeURIComponent(id);
+  const btn = $('[data-act=mail-save]'); if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    const now = new Date().toISOString(), from = m.from?.emailAddress || {};
+    const e = {
+      id: uid(), topic: 'documents', tags: ['email'], related: [], created: now, updated: now,
+      data: { title: m.subject || '(no subject)', kind: $('#mailkind').value, from: [from.name, from.address && `<${from.address}>`].filter(Boolean).join(' '), date: localDay(m.receivedDateTime), status: 'Open', dueDate: '', amount: '', body: (m.body?.content || '').trim().slice(0, 200000), notes: '', mailId: id },
+    };
+    let n = 0;
+    for (const aid of [...document.querySelectorAll('input[name=matt]:checked')].map(i => i.value)) {
+      const ra = await graph(`/me/messages/${eid}/attachments/${encodeURIComponent(aid)}`);
+      if (!ra.ok) continue;
+      const a = await ra.json();
+      if (!a.contentBytes) continue;
+      const blob = new Blob([fromB64(a.contentBytes)], { type: a.contentType || 'application/octet-stream' });
+      await dbPut('files', { id: uid(), entryId: e.id, name: a.name || 'attachment', type: blob.type, size: blob.size, blob, added: now });
+      n++;
+    }
+    e.fileCount = n;
+    state.entries.push(e);
+    await saveEntry(e);
+    toast(`Saved${n ? ` with ${n} attachment${n > 1 ? 's' : ''}` : ''} ✓`);
+    go('#/edit/' + e.id + '?sec=more');
+  } catch (err) { toast(err.message); if (btn) { btn.disabled = false; btn.textContent = '📥 Save to Documents & mail'; } }
+}
+
+/* =====================================================================
+   CONTACTS — import a .vcf file exported from the iPhone Contacts app
+   ===================================================================== */
+function parseVCF(text) {
+  const lines = text.replace(/\r?\n[ \t]/g, '').split(/\r?\n/);
+  const cards = []; let c = null;
+  const unesc = s => s.replace(/\\n/gi, '\n').replace(/\\([,;\\])/g, '$1').trim();
+  const qp = s => { try { return decodeURIComponent(s.replace(/=\r?\n/g, '').replace(/=([0-9A-F]{2})/gi, '%$1')); } catch { return s; } };
+  for (const line of lines) {
+    if (/^BEGIN:VCARD/i.test(line)) { c = { tel: [], email: [] }; continue; }
+    if (/^END:VCARD/i.test(line)) { if (c) cards.push(c); c = null; continue; }
+    if (!c) continue;
+    const i = line.indexOf(':'); if (i < 0) continue;
+    const [nameRaw, ...params] = line.slice(0, i).split(';');
+    const name = nameRaw.replace(/^item\d+\./i, '').toUpperCase(), p = params.join(';').toUpperCase();
+    let v = line.slice(i + 1); if (p.includes('QUOTED-PRINTABLE')) v = qp(v);
+    if (name === 'FN') c.fn = unesc(v);
+    else if (name === 'N') { const [last, first] = v.split(';'); c.n = [unesc(first || ''), unesc(last || '')].filter(Boolean).join(' '); }
+    else if (name === 'TEL') c.tel.push({ v: unesc(v), cell: /CELL|MOBILE|IPHONE/.test(p) });
+    else if (name === 'EMAIL') c.email.push(unesc(v));
+    else if (name === 'ORG') c.org = unesc(v.split(';')[0]);
+    else if (name === 'NOTE') c.note = unesc(v);
+    else if (name === 'BDAY') { const m = v.replace(/T.*$/, '').match(/^(\d{4}|--)-?(\d{2})-?(\d{2})$/); if (m) c.bday = `${m[1] === '--' ? '1604' : m[1]}-${m[2]}-${m[3]}`; }
+    else if (name === 'ADR' && !c.adr) { const a = v.split(';').map(unesc); c.adr = [a[2], [a[5], a[3]].filter(Boolean).join(' '), a[6]].filter(Boolean).join('\n'); }
+  }
+  return cards;
+}
+async function importVCF(file) {
+  try {
+    const cards = parseVCF(await file.text());
+    if (!cards.length) return toast('No contacts found in this file');
+    let added = 0, updated = 0;
+    const now = new Date().toISOString();
+    for (const c of cards) {
+      const name = c.fn || c.n; if (!name) continue;
+      const phone = (c.tel.find(t => t.cell) || c.tel[0])?.v || '';
+      const extra = [...c.tel.filter(t => t.v !== phone).map(t => 'Phone: ' + t.v), ...c.email.slice(1).map(x => 'Email: ' + x)].join('\n');
+      const data = { name, relation: '', company: c.org || '', phone, email: c.email[0] || '', address: c.adr || '', birthday: c.bday || '', notes: [c.note, extra].filter(Boolean).join('\n') };
+      const existing = entriesOf('contacts').find(e => (e.data.name || '').toLowerCase() === name.toLowerCase());
+      if (existing) {
+        let ch = false;
+        for (const [k, v] of Object.entries(data)) if (v && !existing.data[k]) { existing.data[k] = v; ch = true; }
+        if (ch) { await saveEntry(existing); updated++; }
+      } else {
+        const e = { id: uid(), topic: 'contacts', data, tags: [], related: [], created: now, updated: now };
+        state.entries.push(e); await saveEntry(e); added++;
+      }
+    }
+    toast(`${added} contacts added, ${updated} updated ✓`);
+    route();
+  } catch (e) { toast('Could not read the file: ' + e.message); }
+}
+
+/* =====================================================================
+   PHOTOS — reduce large images before storing
+   ===================================================================== */
+async function shrinkImage(file) {
+  if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type) || file.size < 1500000) return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const s = Math.min(1, 2400 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch { return file; }
+}
+async function addPendingFiles(input) {
+  const files = [...input.files]; input.value = '';
+  const big = files.filter(f => f.size > 25 * 1048576 && !f.type.startsWith('image/'));
+  if (big.length) toast('Files over 25 MB were skipped');
+  for (const f of files) {
+    if (big.includes(f)) continue;
+    const s = await shrinkImage(f);
+    if (s.size <= 25 * 1048576) formFiles.pending.push(s);
+  }
+  renderFileList();
+}
+
+/* home-screen icon for iPhone */
+(function touchIcon() {
+  try {
+    const c = document.createElement('canvas'); c.width = c.height = 180;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, 180, 180); g.addColorStop(0, '#5a86ff'); g.addColorStop(1, '#2f55d4');
+    x.fillStyle = g; x.fillRect(0, 0, 180, 180);
+    x.font = '108px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('📘', 90, 98);
+    $('#touchicon').href = c.toDataURL('image/png');
+  } catch { }
+})();
+
+/* convert data saved by the first version of "About me" */
+function migrate(e) {
+  if (e.topic !== 'profile') return false;
+  const d = e.data; let changed = false;
+  if (d.fullName && !d.firstName) {
+    const parts = d.fullName.trim().split(/\s+/);
+    d.firstName = parts.shift(); d.lastName = parts.join(' ');
+    delete d.fullName; changed = true;
+  }
+  const old = [['passportExpiry', 'Passport'], ['idCardExpiry', 'Identity card'], ['licenseExpiry', 'Driving licence']].filter(([k]) => d[k]);
+  if (old.length) {
+    d.ids = [...(d.ids || []), ...old.map(([k, type]) => ({ type, number: '', expiry: d[k] }))];
+    old.forEach(([k]) => delete d[k]); changed = true;
+  }
+  if (d.address && !d.street) { d.notes = [d.notes, 'Old address: ' + d.address].filter(Boolean).join('\n'); delete d.address; changed = true; }
+  if (d.clothingSize && !d.sizeTops) { d.sizeTops = d.clothingSize; delete d.clothingSize; changed = true; }
+  if (d.shoeSize && !d.sizeShoes) { d.sizeShoes = d.shoeSize; delete d.shoeSize; changed = true; }
+  return changed;
+}
+
+/* ===================================================================== */
+/* Global events                                                          */
+/* ===================================================================== */
+document.addEventListener('click', async ev => {
+  if (!ev.target.closest('.addr-lookup')) { const box = $('#addrres'); if (box && !box.hidden && !ev.target.closest('[data-act=addr-check]')) box.hidden = true; }
+  if (document.body.classList.contains('nav-open') && !ev.target.closest('.sidebar,[data-act=toggle-nav]')) document.body.classList.remove('nav-open');
+  const el = ev.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act;
+  if (act === 'toggle-nav') document.body.classList.toggle('nav-open');
+  else if (act === 'go') go(el.dataset.href);
+  else if (act === 'save') saveForm();
+  else if (act === 'vcf-import') $('#vcfinput').click();
+  else if (act === 'ms-connect') { const v = $('#s_client')?.value.trim(); if (v) await setMeta('_clientId', v); signIn(); }
+  else if (act === 'ms-disconnect') disconnectMicrosoft();
+  else if (act === 'key-set') setSyncPassword();
+  else if (act === 'key-forget') { if (await ask('Forget the sync password on this device? Your data stays here; you will need the password to sync again.')) { await setMeta('_syncKey', null); viewSync(); renderSyncChip(); } }
+  else if (act === 'sync-now') syncNow().then(() => { if (currentRoute === '#/sync') viewSync(); });
+  else if (act === 'mail-save') saveMail();
+  else if (act === 'mail-search') go('#/mail?q=' + encodeURIComponent($('#mailq').value));
+  else if (act === 'reconnect') signIn();
+  else if (act === 'req-create') createRequest();
+  else if (act === 'delete') deleteEntry(el.dataset.id);
+  else if (act === 'toggle-file') { const id = el.dataset.id; formFiles.removed.has(id) ? formFiles.removed.delete(id) : formFiles.removed.add(id); renderFileList(); }
+  else if (act === 'drop-pending') { formFiles.pending.splice(+el.dataset.i, 1); renderFileList(); }
+  else if (act === 'grow-add') rerenderForm(d => { d[el.dataset.g] = [...(d[el.dataset.g] || []), {}]; });
+  else if (act === 'grow-del') rerenderForm(d => { d[el.dataset.g].splice(+el.dataset.i, 1); });
+  else if (act === 'addr-pick') addrPick(addrResults[+el.dataset.i]);
+  else if (act === 'addr-check') addrCheck();
+  else if (act === 'ins-skip') {
+    const p = profileEntry(); const k = el.dataset.k;
+    const s = new Set(p.data.insuranceSkip || []); s.has(k) ? s.delete(k) : s.add(k);
+    p.data.insuranceSkip = [...s]; await saveEntry(p); route();
+  }
+  else if (act === 'copy-req') copyText((state.meta.requests || [])[+el.dataset.i]?.text || '');
+  else if (act === 'del-req') { if (await ask('Delete this saved topic plan?')) { const r = [...(state.meta.requests || [])]; r.splice(+el.dataset.i, 1); await setMeta('requests', r); viewRequest(); } }
+  else if (act === 'export') exportBackup();
+  else if (act === 'import-merge') doImport(false);
+  else if (act === 'import-replace') doImport(true);
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.id === 'fileinput' || t.id === 'camerainput') addPendingFiles(t);
+  if (t.id === 'vcfinput' && t.files[0]) importVCF(t.files[0]).finally(() => { t.value = ''; });
+  if (t.id === 'importfile' && t.files[0]) readImport(t.files[0]);
+  if (t.hasAttribute?.('data-rerender') && t.closest('#entryform')) rerenderForm();
+});
+document.addEventListener('input', ev => {
+  const t = ev.target;
+  if (t.classList.contains('lb-filter')) {
+    const v = t.value.toLowerCase();
+    t.parentElement.querySelectorAll('.lb-item').forEach(l => l.style.display = l.textContent.toLowerCase().includes(v) ? '' : 'none');
+  }
+  if (t.id === 'addrq') addrInput(t.value);
+  if (['f_street', 'f_houseNo', 'f_zip', 'f_city'].includes(t.name)) {
+    const v = t.form.elements.f_addressVerified;
+    if (v?.value) { v.value = ''; $('#addrstatus').innerHTML = addrStatusHTML(''); }
+  }
+});
+const qInput = $('#q');
+qInput.addEventListener('input', () => {
+  go('#/search?q=' + encodeURIComponent(qInput.value), currentRoute.startsWith('#/search'));
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { ev.preventDefault(); qInput.focus(); }
+  if (ev.key === 'Escape' && document.activeElement === qInput) { qInput.value = ''; qInput.blur(); go('#/'); }
+  if (ev.key === 'Escape' && document.activeElement?.id === 'addrq') showAddrResults([]);
+  if (ev.key === 's' && (ev.ctrlKey || ev.metaKey) && $('#entryform')) { ev.preventDefault(); saveForm(); }
+});
+/* In-app navigation. The address bar is updated when allowed, but the app never
+   depends on it, because some embedded previews reload when the address changes. */
+let currentRoute = location.hash || '#/';
+function go(href, replace = false) {
+  currentRoute = href || '#/';
+  try { history[replace ? 'replaceState' : 'pushState'](null, '', currentRoute); } catch { /* not allowed here */ }
+  route();
+}
+document.addEventListener('click', ev => {
+  const a = ev.target.closest('a[href^="#"]');
+  if (!a || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button) return;
+  const href = a.getAttribute('href');
+  if (href.startsWith('#/')) { ev.preventDefault(); go(href); }
+  else { const target = document.getElementById(href.slice(1)); if (target) { ev.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); } }
+});
+window.addEventListener('popstate', () => { currentRoute = location.hash || '#/'; route(); });
+window.addEventListener('hashchange', () => { if (location.hash !== currentRoute) { currentRoute = location.hash || '#/'; route(); } });
+
+/* ===================================================================== */
+/* Start                                                                  */
+/* ===================================================================== */
+/* show problems on screen instead of failing silently */
+function showError(err) {
+  console.error(err);
+  const msg = err?.stack || err?.message || String(err);
+  let box = $('#errbox');
+  if (!box) { box = document.createElement('div'); box.id = 'errbox'; box.className = 'card'; box.style.cssText = 'border-color:var(--danger);margin-bottom:16px'; main.prepend(box); }
+  box.innerHTML = `<div class="sec-head"><h2 class="bad">⚠️ Something went wrong</h2><button class="btn sm" onclick="location.reload()">Reload</button></div>
+    <p class="small muted">Your saved data is not affected. If this keeps happening, copy this text and send it to Claude:</p><pre class="out">${h(msg)}</pre>`;
+}
+window.addEventListener('error', ev => showError(ev.error || ev.message));
+window.addEventListener('unhandledrejection', ev => showError(ev.reason));
+
+(async function init() {
+  try {
+    db = await openDB();
+    navigator.storage?.persist?.();
+  } catch (err) {
+    db = null;
+    document.body.insertAdjacentHTML('afterbegin', `<div class="notice" style="position:sticky;top:0;z-index:30;border-radius:0;background:var(--danger-soft);color:var(--danger)">
+      <span>⚠️ <b>Preview mode: nothing is saved.</b> This window blocks browser storage. Open <b>lifebook.html</b> directly in Edge, Chrome or Firefox (double-click the file) to keep your data.</span></div>`);
+  }
+  state.entries = await dbAll('entries');
+  state.meta = Object.fromEntries((await dbAll('meta')).map(m => [m.key, m.value]));
+  for (const e of state.entries) if (migrate(e)) await dbPut('entries', clean(e));
+  if (db) await handleRedirect();
+  route();
+  if (state.meta._account && !tokenUsable() && canSignIn()) {
+    // sign-in expired (Microsoft limits it to 24 h for web apps): renew silently once, without a prompt
+    const last = +localStorage.getItem('lb_silent') || 0;
+    if (Date.now() - last > 10 * 60 * 1000) { localStorage.setItem('lb_silent', Date.now()); return signIn('none'); }
+    setSync('login');
+  }
+  syncNow();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - new Date(state.meta._lastSync || 0) > 60000) syncNow();
+  });
+  window.addEventListener('online', () => syncNow());
+})();
+</script>
+</body>
+</html>
