@@ -1693,7 +1693,7 @@ async function doImport(replace) {
    MICROSOFT SIGN-IN (OAuth 2 with PKCE, no extra libraries)
    Used for OneDrive sync and reading Outlook/Hotmail emails.
    ===================================================================== */
-const CLIENT_ID = ''; // Microsoft app (client) ID; can also be entered under "Phone & sync"
+const CLIENT_ID = 'c42b89ee-93a0-44f5-9669-f0eea6641ef3'; // Microsoft app (client) ID of the "Lifebook" app registration
 const AUTH_URL = 'https://login.microsoftonline.com/consumers/oauth2/v2.0';
 const SCOPES = 'openid profile offline_access User.Read Files.ReadWrite.AppFolder Mail.Read';
 const clientId = () => state.meta._clientId || CLIENT_ID;
