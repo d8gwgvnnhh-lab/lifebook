@@ -196,6 +196,13 @@ mark{background:color-mix(in srgb,var(--accent) 25%,transparent);color:inherit;b
 .mail-body{white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto;background:var(--panel2);padding:14px;border-radius:10px;font-size:14px}
 code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:13px;word-break:break-all}
 .steps{margin:0;padding-left:20px;line-height:1.8}
+.snd-row{display:flex;gap:12px;align-items:flex-start;padding:12px 2px;border-bottom:1px solid var(--border)}
+.snd-row:last-child{border-bottom:0}
+.snd-ic{font-size:22px;width:28px;text-align:center;flex:none;line-height:1.3}
+.snd-main{flex:1;min-width:0}
+.snd-act{display:flex;flex-direction:column;gap:6px;align-items:flex-end;flex:none}
+.snd-act select{padding:4px 8px;border:1px solid var(--border);border-radius:8px;background:var(--panel);font-size:13px;max-width:220px}
+@media (max-width:820px){.snd-row{flex-wrap:wrap}.snd-act{width:100%;align-items:flex-start;padding-left:40px}}
 
 /* iPhone notch / home indicator */
 .topbar{padding-top:max(12px,env(safe-area-inset-top))}
@@ -670,7 +677,7 @@ const dbDel = async (name, k) => db ? req(store(name, 'readwrite').delete(k)) : 
 const dbClear = async name => db ? req(store(name, 'readwrite').clear()) : mem[name].clear();
 const filesFor = async entryId => db ? req(store('files').index('entryId').getAll(entryId)) : [...mem.files.values()].filter(f => f.entryId === entryId);
 /* Einstellungen, die zwischen Geräten synchronisiert werden; Schlüssel mit "_" bleiben nur auf diesem Gerät */
-const SYNCED_META = ['name', 'currency', 'requests'];
+const SYNCED_META = ['name', 'currency', 'requests', 'senderPrefs'];
 async function setMeta(key, value) {
   state.meta[key] = value;
   await dbPut('meta', { key, value });
@@ -860,6 +867,7 @@ function renderSidebar(active) {
       <div class="nav-label">Organisieren</div>
       ${link('#/tags', '🏷️', 'Tags', 'tags', allTags().length || '')}
       ${link('#/mail', '✉️', 'E-Mail', 'mail')}
+      ${link('#/senders', '📇', 'Absender', 'senders')}
       ${link('#/sync', '📱', 'Handy & Sync', 'sync')}
       ${link('#/request', '✨', 'Neues Thema planen', 'request')}
       ${link('#/backup', '💾', 'Backup & Einstellungen', 'backup')}
@@ -897,6 +905,7 @@ async function route() {
     else if (a === 'request') { active = 'request'; viewRequest(); }
     else if (a === 'mail') { active = 'mail'; renderSidebar(active); b ? await viewMessage(b) : await viewMail(q); }
     else if (a === 'sync') { active = 'sync'; viewSync(); }
+    else if (a === 'senders') { active = 'senders'; viewSenders(); }
     else if (a === 'backup') { active = 'backup'; viewBackup(); }
     else { main.innerHTML = `<div class="card empty"><div class="big">🤷</div><p>Diese Seite gibt es nicht (mehr).</p><a class="btn" href="#/">Zur Übersicht</a></div>`; }
   } catch (err) {
@@ -2105,7 +2114,8 @@ async function viewMail(q) {
   }
   const s = q.get('q') || '';
   main.innerHTML = `
-    <div class="page-head"><div><h1>✉️ E-Mail</h1><p class="muted">Durchsuche dein Postfach und speichere wichtige E-Mails wie Rechnungen, Verträge oder Bestätigungen unter <a href="#/topic/documents">Dokumente & Post</a>. Lifebook liest nur; in deinem Postfach wird nichts verändert.</p></div></div>
+    <div class="page-head"><div><h1>✉️ E-Mail</h1><p class="muted">Durchsuche dein Postfach und speichere wichtige E-Mails wie Rechnungen, Verträge oder Bestätigungen unter <a href="#/topic/documents">Dokumente & Post</a>. Lifebook liest nur; in deinem Postfach wird nichts verändert.</p></div>
+      <a class="btn" href="#/senders">📇 Absender-Übersicht</a></div>
     <div class="toolbar"><input type="search" id="mailq" placeholder="E-Mails durchsuchen, z.B. Rechnung, Swisscom, Versicherung…" value="${h(s)}" style="flex:1;min-width:200px"><button class="btn" data-act="mail-search">Suchen</button></div>
     <div class="card" id="maillist"><p class="muted small" style="margin:0">E-Mails werden geladen…</p></div>`;
   $('#mailq').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); go('#/mail?q=' + encodeURIComponent(ev.target.value)); } };
@@ -2179,6 +2189,226 @@ async function saveMail() {
     toast(`Gespeichert${n ? ` mit ${n} ${n > 1 ? 'Anhängen' : 'Anhang'}` : ''} ✓`);
     go('#/edit/' + e.id + '?sec=more');
   } catch (err) { toast(err.message); if (btn) { btn.disabled = false; btn.textContent = '📥 Unter Dokumente & Post speichern'; } }
+}
+
+/* =====================================================================
+   ABSENDER-ÜBERSICHT: wer schreibt dir, und warum?
+   Gruppiert das Postfach nach Absender, erkennt die Art (Vertrag, Kauf,
+   Termin, Werbung, persönlich) und bietet die offizielle Abmeldung
+   (List-Unsubscribe) für Werbung an. Analyse-Daten bleiben auf dem Gerät.
+   ===================================================================== */
+const SENDER_CATS = {
+  contract: { l: 'Vertrag / Abo', i: '📄' },
+  purchase: { l: 'Kauf / Bestellung', i: '🛒' },
+  appointment: { l: 'Termin / Buchung', i: '📅' },
+  marketing: { l: 'Werbung / Newsletter', i: '📣' },
+  personal: { l: 'Persönlich', i: '👤' },
+  other: { l: 'Unklar', i: '❔' },
+};
+const SENDER_KW = {
+  contract: /rechnung|invoice|faktur|police|polizz|vertrag|contrat|contratto|prämie|praemie|kündigung|kuendigung|\babo\b|abonnement|subscription|mitgliedschaft|membership|kontoauszug|account statement|mahnung|zahlungserinnerung|lastschrift|ebill|e-rechnung|versicherung|leistungsabrechnung|steuer|tarif|preisanpassung|your plan|billing|jahresbeitrag/i,
+  purchase: /bestellung|bestellbestätigung|\border\b|commande|ordine|versand|versendet|shipped|lieferung|delivery|livraison|paket|sendung|tracking|quittung|kaufbeleg|receipt|zahlungsbestätigung|payment confirmation|ihr kauf|your purchase|rückerstattung|refund/i,
+  appointment: /termin|appointment|rendez-vous|appuntamento|reservation|reservierung|buchung|booking|check-?in|boarding|\bflug|flight|ticket|einladung|invitation|erinnerung an|konsultation/i,
+  marketing: /newsletter|angebot|aktion|rabatt|\bsale\b|\bdeal|gutschein|coupon|\d+\s?%|black friday|cyber monday|nur heute|exklusiv|entdecke|discover|neuheiten|jetzt shoppen|shop now|gratis|free shipping|gewinnspiel|webinar|online ansehen|view in browser/i,
+};
+const SENDER_ADDR = { marketing: /^(news|newsletter|marketing|promo|angebote|offers|mailing|hello|deals)\b/i, contract: /^(billing|rechnung|invoice|factur|kundendienst|kundenservice|accounts?)\b/i };
+const FREEMAIL = /^(gmail|googlemail|hotmail|outlook|live|msn|yahoo|ymail|icloud|me|mac|gmx|web|bluewin|sunrise|hispeed|protonmail|proton|t-online|aol)\./i;
+const domainOf = a => (String(a).split('@')[1] || '').toLowerCase();
+const baseDomain = d => d.split('.').slice(-2).join('.');
+const normName = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+
+function senderLinks(s) {
+  const base = baseDomain(domainOf(s.addr)), brand = normName(base.split('.')[0]);
+  const contact = entriesOf('contacts').find(e => (e.data.email || '').trim().toLowerCase() === s.addr);
+  const contract = entriesOf('contracts').find(e => {
+    const w = String(e.data.website || '').toLowerCase().replace(/^https?:\/\//, '').split('/')[0];
+    if (w && baseDomain(w) === base) return true;
+    const p = normName(e.data.provider);
+    return p.length >= 3 && brand.length >= 3 && (brand.includes(p) || p.includes(brand));
+  });
+  return { contact, contract };
+}
+function classifySender(s, links) {
+  const sc = { contract: 0, purchase: 0, appointment: 0, marketing: 0, personal: 0 };
+  for (const t of [...(s.subjects || []), ...(s.previews || [])])
+    for (const k of ['contract', 'purchase', 'appointment', 'marketing']) if (SENDER_KW[k].test(t)) sc[k] += k === 'marketing' ? 1 : 2;
+  const local = s.addr.split('@')[0];
+  if (SENDER_ADDR.marketing.test(local)) sc.marketing += 1;
+  if (SENDER_ADDR.contract.test(local)) sc.contract += 2;
+  if (s.unsub && (s.unsub.http || s.unsub.mailto)) sc.marketing += 3;
+  if (links.contract) sc.contract += 6;
+  if (links.contact) sc.personal += 8;
+  if (FREEMAIL.test(domainOf(s.addr)) && !(s.unsub && (s.unsub.http || s.unsub.mailto))) sc.personal += 3;
+  const [cat, score] = Object.entries(sc).sort((a, b) => b[1] - a[1])[0];
+  return score >= 2 ? cat : 'other';
+}
+
+let senderScan = null; // läuft gerade eine Analyse?
+function senderProgress(text) { const el = $('#sndprog'); if (el) el.textContent = text; }
+async function scanSenders(full) {
+  if (senderScan) return senderScan;
+  senderScan = (async () => {
+    try {
+      const old = !full && state.meta._mailSenders;
+      const data = old ? structuredClone(old) : { senders: {}, scannedUntil: null, months: 12 };
+      const since = data.scannedUntil || new Date(Date.now() - 365 * 86400000).toISOString();
+      const me = (state.meta._account?.email || '').toLowerCase();
+      let junkId = '';
+      try { const jr = await graph('/me/mailFolders/junkemail?$select=id'); if (jr.ok) junkId = (await jr.json()).id; } catch (e) { if (e instanceof NeedLogin) throw e; }
+      let url = `/me/messages?$select=id,from,subject,receivedDateTime,bodyPreview,isDraft,parentFolderId&$filter=receivedDateTime%20${data.scannedUntil ? 'gt' : 'ge'}%20${since}&$orderby=receivedDateTime%20desc&$top=250`;
+      let n = 0, newest = data.scannedUntil;
+      while (url && n < 5000) {
+        const r = await graph(url); if (!r.ok) throw await gErr(r);
+        const j = await r.json();
+        for (const m of j.value || []) {
+          const addr = (m.from?.emailAddress?.address || '').toLowerCase();
+          if (!addr || m.isDraft || addr === me) continue;
+          const s = data.senders[addr] ||= { addr, name: '', count: 0, last: '', lastId: '', subjects: [], previews: [], junk: false };
+          s.count++;
+          if (!s.last || m.receivedDateTime > s.last) { s.last = m.receivedDateTime; s.lastId = m.id; s.name = m.from.emailAddress.name || s.name; s.junk = !!junkId && m.parentFolderId === junkId; }
+          if (m.subject && s.subjects.length < 5 && !s.subjects.includes(m.subject)) s.subjects.push(m.subject);
+          if (m.bodyPreview && s.previews.length < 2) s.previews.push(m.bodyPreview.slice(0, 160));
+          if (!newest || m.receivedDateTime > newest) newest = m.receivedDateTime;
+        }
+        n += (j.value || []).length;
+        senderProgress(`${n} E-Mails analysiert, ${Object.keys(data.senders).length} Absender…`);
+        url = j['@odata.nextLink'] || null;
+      }
+      // Abmelde-Informationen der häufigsten Absender nachladen (aus der neusten E-Mail)
+      const todo = Object.values(data.senders).filter(s => s.unsub === undefined && !s.junk).sort((a, b) => b.count - a.count).slice(0, 150);
+      let done = 0;
+      const worker = async () => { while (todo.length) { const s = todo.shift(); s.unsub = await fetchUnsub(s) || {}; done++; senderProgress(`Abmelde-Links prüfen… ${done}`); } };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+      data.scannedUntil = newest || since;
+      data.scannedAt = new Date().toISOString();
+      await setMeta('_mailSenders', data);
+      toast(`Analyse fertig: ${Object.keys(data.senders).length} Absender ✓`);
+    } catch (e) {
+      if (e instanceof NeedLogin) { setSync('login'); toast('Bitte unter „Handy & Sync" neu verbinden'); }
+      else toast('Analyse fehlgeschlagen: ' + e.message);
+    } finally {
+      senderScan = null;
+      if (currentRoute.startsWith('#/senders')) route();
+    }
+  })();
+  return senderScan;
+}
+async function fetchUnsub(s) {
+  try {
+    const r = await graph(`/me/messages/${encodeURIComponent(s.lastId)}?$select=internetMessageHeaders`);
+    if (!r.ok) return null;
+    const hs = (await r.json()).internetMessageHeaders || [];
+    const get = n => hs.find(x => String(x.name).toLowerCase() === n)?.value || '';
+    const links = [...get('list-unsubscribe').matchAll(/<([^>]+)>/g)].map(m => m[1].trim());
+    const http = links.find(l => /^https:\/\//i.test(l)) || '';
+    const mailto = links.find(l => /^mailto:/i.test(l)) || '';
+    return { http, mailto, oneClick: !!http && /one-click/i.test(get('list-unsubscribe-post')) };
+  } catch (e) { if (e instanceof NeedLogin) throw e; return null; }
+}
+async function unsubscribeSender(addr) {
+  const data = state.meta._mailSenders, s = data?.senders[addr]; if (!s) return;
+  if (s.junk) return toast('Dieser Absender landet im Junk-Ordner. Abmelden bei Spam bestätigt nur, dass deine Adresse aktiv ist. Besser ignorieren.');
+  if (s.unsub === undefined) { toast('Abmelde-Link wird gesucht…'); s.unsub = await fetchUnsub(s) || {}; await setMeta('_mailSenders', data); }
+  const u = s.unsub || {};
+  if (!u.http && !u.mailto) return toast('Dieser Absender bietet keine automatische Abmeldung an. Öffne eine seiner E-Mails und nutze den Abmelde-Link ganz unten.');
+  const target = u.http ? new URL(u.http).hostname : u.mailto.replace(/^mailto:/i, '').split('?')[0];
+  const how = u.http && u.oneClick ? 'Lifebook meldet dich direkt ab (Ein-Klick-Abmeldung).'
+    : u.http ? 'Die Abmeldeseite des Absenders öffnet sich; dort die Abmeldung bestätigen.'
+    : 'Deine Mail-App öffnet sich mit einer fertigen Abmelde-E-Mail; du musst sie nur noch senden.';
+  if (!await ask(`Von „${s.name || addr}" abmelden? ${how} Ziel: ${target}`, 'Abmelden')) return;
+  if (u.http && u.oneClick) {
+    try { await fetch(u.http, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'List-Unsubscribe=One-Click' }); } catch { }
+    toast('Abmeldung gesendet ✓');
+  } else if (u.http) window.open(u.http, '_blank', 'noopener');
+  else location.href = u.mailto;
+  const prefs = { ...(state.meta.senderPrefs || {}) };
+  prefs[addr] = { ...(prefs[addr] || {}), unsubscribed: new Date().toISOString() };
+  await setMeta('senderPrefs', prefs);
+  renderSenderList();
+}
+async function setSenderCat(addr, cat) {
+  const prefs = { ...(state.meta.senderPrefs || {}) };
+  const p = { ...(prefs[addr] || {}) };
+  const s = state.meta._mailSenders?.senders[addr];
+  if (s && cat === classifySender(s, senderLinks(s))) delete p.cat; else p.cat = cat;
+  prefs[addr] = p;
+  await setMeta('senderPrefs', prefs);
+  renderSenderList();
+}
+const newContractFromSender = s => {
+  const base = baseDomain(domainOf(s.addr)), brand = base.split('.')[0];
+  const name = (s.name && !/noreply|no-reply|info|service/i.test(s.name) ? s.name : brand.charAt(0).toUpperCase() + brand.slice(1));
+  return '#/new/contracts?' + new URLSearchParams({ title: name, provider: name, website: base, ret: '#/senders' });
+};
+let senderView = { f: '', s: '', sort: 'count', limit: 150 };
+function senderRows() {
+  const data = state.meta._mailSenders; if (!data) return [];
+  const prefs = state.meta.senderPrefs || {};
+  return Object.values(data.senders).map(s => {
+    const links = senderLinks(s), auto = classifySender(s, links), p = prefs[s.addr] || {};
+    return { s, links, p, cat: p.cat || auto, manual: !!p.cat };
+  });
+}
+function renderSenderList() {
+  const box = $('#sndlist'); if (!box) return;
+  const all = senderRows();
+  const counts = {}; all.forEach(r => counts[r.cat] = (counts[r.cat] || 0) + 1);
+  const chips = $('#sndchips');
+  if (chips) chips.innerHTML = ['', ...Object.keys(SENDER_CATS)].map(k => `<button data-act="snd-filter" data-f="${k}" class="${senderView.f === k ? 'on' : ''}">${k ? SENDER_CATS[k].i + ' ' + SENDER_CATS[k].l : 'Alle'} <span style="opacity:.7">${k ? counts[k] || 0 : all.length}</span></button>`).join('');
+  const term = senderView.s.toLowerCase();
+  const list = all.filter(r => (!senderView.f || r.cat === senderView.f) && (!term || (r.s.addr + ' ' + r.s.name + ' ' + (r.s.subjects || []).join(' ')).toLowerCase().includes(term)))
+    .sort((a, b) => senderView.sort === 'last' ? b.s.last.localeCompare(a.s.last) : senderView.sort === 'name' ? (a.s.name || a.s.addr).localeCompare(b.s.name || b.s.addr) : b.s.count - a.s.count);
+  const late = (p, s) => p.unsubscribed && s.last && (new Date(s.last) - new Date(p.unsubscribed)) > 10 * 86400000;
+  box.innerHTML = list.length ? list.slice(0, senderView.limit).map(({ s, links, p, cat, manual }) => `
+    <div class="snd-row">
+      <div class="snd-ic">${SENDER_CATS[cat].i}</div>
+      <div class="snd-main">
+        <div><b>${h(s.name || s.addr)}</b> <span class="muted small">${h(s.addr)}</span></div>
+        <div class="small muted msg-prev">${s.count} ${s.count === 1 ? 'E-Mail' : 'E-Mails'} · zuletzt ${fmtDate(localDay(s.last))}${s.subjects?.[0] ? ' · „' + h(s.subjects[0]) + '"' : ''}</div>
+        <div class="chips" style="margin-top:5px">
+          ${links.contract ? `<a class="chip" href="#/entry/${links.contract.id}">📄 ${h(title(links.contract))}</a>` : ''}
+          ${links.contact ? `<a class="chip" href="#/entry/${links.contact.id}">👤 ${h(title(links.contact))}</a>` : ''}
+          ${p.unsubscribed ? `<span class="chip">🔕 abgemeldet am ${fmtDate(p.unsubscribed.slice(0, 10))}</span>` : ''}
+          ${late(p, s) ? `<span class="chip mandatory">⚠️ schreibt trotz Abmeldung</span>` : ''}
+          ${s.junk ? `<span class="chip">🗑️ Junk-Ordner</span>` : ''}
+        </div>
+      </div>
+      <div class="snd-act">
+        <select data-snd-cat="${h(s.addr)}" title="Art ändern">${Object.entries(SENDER_CATS).map(([k, c]) => `<option value="${k}" ${k === cat ? 'selected' : ''}>${c.i} ${c.l}${k === cat && manual ? ' (von dir)' : ''}</option>`).join('')}</select>
+        <div class="actions">
+          <a class="btn sm" href="#/mail?q=${encodeURIComponent('from:' + s.addr)}">✉️ E-Mails</a>
+          ${cat === 'marketing' && !s.junk && !p.unsubscribed ? `<button class="btn sm danger" data-act="snd-unsub" data-a="${h(s.addr)}">🔕 Abmelden</button>` : ''}
+          ${cat === 'contract' && !links.contract ? `<a class="btn sm" href="${h(newContractFromSender(s))}">➕ Vertrag erfassen</a>` : ''}
+        </div>
+      </div>
+    </div>`).join('') + (list.length > senderView.limit ? `<div style="text-align:center;padding:12px"><button class="btn" data-act="snd-more">Weitere ${list.length - senderView.limit} anzeigen</button></div>` : '')
+    : '<p class="muted" style="margin:0">Keine Absender für diese Auswahl.</p>';
+}
+function viewSenders() {
+  if (!state.meta._account) {
+    main.innerHTML = `<div class="page-head"><div><h1>📇 Absender</h1></div></div>
+      <div class="card empty"><div class="big">📇</div><p>Verbinde dein Microsoft-Konto, damit Lifebook dein Postfach nach Absendern ordnen kann.</p><a class="btn primary" href="#/sync">Unter „Handy & Sync" einrichten</a></div>`;
+    return;
+  }
+  const data = state.meta._mailSenders;
+  main.innerHTML = `
+    <div class="page-head"><div><h1>📇 Absender</h1><p class="muted">Wer schreibt dir, und warum? Die Art wird automatisch erkannt (Betreff, Absender, Abmelde-Link und deine Verträge/Kontakte in Lifebook). Du kannst sie bei jedem Absender ändern. Die Analyse bleibt auf diesem Gerät.</p></div>
+      <div class="actions">${data ? `<button class="btn" data-act="snd-scan">🔄 Aktualisieren</button><button class="btn sm" data-act="snd-scan" data-full="1">Neu analysieren</button>` : ''}</div></div>
+    ${data ? `<p class="small muted" style="margin:-8px 0 12px"><span id="sndprog">${senderScan ? 'Analyse läuft…' : `Zuletzt analysiert ${h(timeAgo(data.scannedAt || data.scannedUntil))} · ${Object.keys(data.senders).length} Absender aus den letzten 12 Monaten`}</span></p>
+      <div class="toolbar"><div class="seg" id="sndchips"></div></div>
+      <div class="toolbar">
+        <input type="search" id="sndq" placeholder="Absender, Adresse oder Betreff filtern…" value="${h(senderView.s)}" style="flex:1;min-width:200px">
+        <select id="sndsort"><option value="count">Meiste E-Mails</option><option value="last">Neuste zuerst</option><option value="name">Name A–Z</option></select>
+      </div>
+      <div class="card" id="sndlist"></div>
+      <p class="small muted">🔕 <b>Abmelden</b> nutzt den offiziellen Abmelde-Weg, den der Absender in seinen E-Mails angibt. Bei Absendern aus dem Junk-Ordner gibt es bewusst keinen Abmelde-Knopf: Bei Spam bestätigt eine Abmeldung nur, dass deine Adresse aktiv ist.</p>`
+    : `<div class="card empty"><div class="big">📇</div><p>Lifebook liest Absender, Betreff und Datum der E-Mails der letzten 12 Monate und ordnet sie. Je nach Postfach dauert das ein bis zwei Minuten.</p>
+        <button class="btn primary" data-act="snd-scan">🔍 Postfach jetzt analysieren</button><p class="small muted" id="sndprog">${senderScan ? 'Analyse läuft…' : ''}</p></div>`}`;
+  if (!data) return;
+  $('#sndsort').value = senderView.sort;
+  $('#sndsort').onchange = ev => { senderView.sort = ev.target.value; renderSenderList(); };
+  $('#sndq').oninput = ev => { senderView.s = ev.target.value; senderView.limit = 150; renderSenderList(); };
+  renderSenderList();
 }
 
 /* =====================================================================
@@ -2315,6 +2545,10 @@ document.addEventListener('click', async ev => {
   else if (act === 'mail-save') saveMail();
   else if (act === 'mail-search') go('#/mail?q=' + encodeURIComponent($('#mailq').value));
   else if (act === 'reconnect') signIn();
+  else if (act === 'snd-scan') { if (el.dataset.full && !await ask('Postfach komplett neu analysieren? Deine eigenen Einteilungen und Abmeldungen bleiben erhalten.', 'Neu analysieren')) return; scanSenders(!!el.dataset.full); senderProgress('Analyse läuft…'); }
+  else if (act === 'snd-unsub') unsubscribeSender(el.dataset.a);
+  else if (act === 'snd-filter') { senderView.f = el.dataset.f; senderView.limit = 150; renderSenderList(); }
+  else if (act === 'snd-more') { senderView.limit += 150; renderSenderList(); }
   else if (act === 'req-create') createRequest();
   else if (act === 'delete') deleteEntry(el.dataset.id);
   else if (act === 'toggle-file') { const id = el.dataset.id; formFiles.removed.has(id) ? formFiles.removed.delete(id) : formFiles.removed.add(id); renderFileList(); }
@@ -2340,6 +2574,7 @@ document.addEventListener('change', ev => {
   if (t.id === 'vcfinput' && t.files[0]) importVCF(t.files[0]).finally(() => { t.value = ''; });
   if (t.id === 'importfile' && t.files[0]) readImport(t.files[0]);
   if (t.hasAttribute?.('data-rerender') && t.closest('#entryform')) rerenderForm();
+  if (t.dataset?.sndCat) setSenderCat(t.dataset.sndCat, t.value);
 });
 document.addEventListener('input', ev => {
   const t = ev.target;
