@@ -2714,6 +2714,12 @@ const INBOX_DIR = '_Jarvis-Vorschläge';
 function validSuggestion(x) {
   if (!x || typeof x !== 'object') return null;
   const action = x.action === 'create' ? 'create' : 'update';
+  if (action === 'update' && !byId(x.entryId) && TOPIC[x.topic]) {
+    const list = entriesOf(x.topic);
+    const hit = TOPIC[x.topic].single ? list[0] : x.entrySuffix ? list.filter(e => e.id.endsWith(String(x.entrySuffix))) : [];
+    const one = Array.isArray(hit) ? (hit.length === 1 ? hit[0] : null) : hit;
+    if (one) x = { ...x, entryId: one.id };
+  }
   const topic = action === 'create' ? x.topic : byId(x.entryId)?.topic;
   const t = TOPIC[topic];
   if (!t) return null;
@@ -2730,14 +2736,14 @@ function validSuggestion(x) {
   const tagList = a => Array.isArray(a) ? a.map(s => String(s).toLowerCase().trim()).filter(Boolean).slice(0, 20) : [];
   return {
     id: uid(), action, entryId: action === 'update' ? x.entryId : null, topic, data,
-    addTags: tagList(x.addTags), removeTags: tagList(x.removeTags), reason: String(x.reason || '').slice(0, 2000), received: new Date().toISOString(),
+    addTags: tagList(x.addTags), removeTags: tagList(x.removeTags), addRelated: (Array.isArray(x.addRelated) ? x.addRelated : []).filter(id => byId(id)).slice(0, 20), reason: String(x.reason || '').slice(0, 2000), received: new Date().toISOString(),
   };
 }
 async function readJarvisInbox(root) {
   let dir; try { dir = await root.getDirectoryHandle(INBOX_DIR, { create: true }); } catch { return; }
   const found = [];
   for await (const [name, h] of dir.entries()) {
-    if (h.kind !== 'file' || !/\.json$/i.test(name)) continue;
+    if (h.kind !== 'file' || !/\.(json|vorschlag)$/i.test(name)) continue;
     try {
       const parsed = JSON.parse(await (await h.getFile()).text());
       for (const x of Array.isArray(parsed) ? parsed : [parsed]) { const v = validSuggestion(x); if (v) found.push(v); }
@@ -2767,6 +2773,7 @@ function suggestionCard(s) {
     ${s.reason ? `<p class="small" style="margin:0 0 10px">🤖 ${h(s.reason)}</p>` : ''}
     ${rows ? `<table class="tbl"><tr><td class="small muted"><b>Feld</b></td><td class="small muted"><b>Bisher</b></td><td class="small muted"><b>Neu</b></td></tr>${rows}</table>` : '<p class="muted small">Keine Änderungen an Feldern.</p>'}
     ${tags ? `<div class="chips" style="margin-top:10px"><span class="small muted">Tags:</span> ${tags}</div>` : ''}
+    ${(s.addRelated || []).length ? `<div class="chips" style="margin-top:8px"><span class="small muted">Verknüpfen mit:</span> ${s.addRelated.map(byId).filter(Boolean).map(x => `<span class="chip">${TOPIC[x.topic].icon} ${h(title(x))}</span>`).join(' ')}</div>` : ''}
     <div class="actions" style="margin-top:14px"><button class="btn primary" data-act="sug-apply" data-id="${s.id}">✅ Übernehmen</button><button class="btn" data-act="sug-drop" data-id="${s.id}">Verwerfen</button>${e ? `<a class="btn sm" href="#/entry/${e.id}">Eintrag ansehen</a>` : ''}</div>
   </div>`;
 }
@@ -2790,6 +2797,7 @@ async function applySuggestion(id) {
     state.entries.push(e);
   }
   e.tags = [...new Set([...(e.tags || []).filter(x => !s.removeTags.includes(x)), ...s.addTags])];
+  e.related = [...new Set([...(e.related || []), ...(s.addRelated || [])])];
   await saveEntry(e);
   await setMeta('jarvisInbox', list.filter(x => x.id !== id));
   toast('Übernommen ✓');
