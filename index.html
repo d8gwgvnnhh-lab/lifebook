@@ -2608,9 +2608,16 @@ async function jarvisPush(force = false) {
       const files = (await dbAll('files')).filter(f => ids.has(f.entryId));
       const snapshot = {
         v: 1, owner: state.meta._account?.name || '', topics: topics.map(t => ({ id: t.id, name: t.name })),
+        schema: topics.map(t => ({
+          id: t.id, name: t.name, single: !!t.single,
+          fields: t.fields.filter(f => !['custom', 'hidden'].includes(f.type)).map(f => {
+            let o = f.options; try { if (typeof o === 'function') o = o(); } catch { o = null; }
+            return { key: f.key, label: f.label, type: f.type, ...(Array.isArray(o) ? { options: o.map(x => typeof x === 'object' ? x.value : x) } : {}) };
+          }),
+        })),
         entries: entries.map(e => ({
           id: e.id, topic: e.topic, topicName: TOPIC[e.topic].name, title: title(e), updated: e.updated,
-          fields: entryFields(e), tags: e.tags || [],
+          fields: entryFields(e), data: e.data, tags: e.tags || [],
           related: (e.related || []).map(byId).filter(Boolean).map(x => ({ id: x.id, title: title(x), topic: TOPIC[x.topic].name })),
           attachments: files.filter(f => f.entryId === e.id).map(f => ({ file_id: f.id, name: f.name, type: f.type, size_kb: Math.round(f.size / 1024) })),
         })),
@@ -2653,7 +2660,40 @@ async function jarvisDeleteAll() {
 /* nach jeder Änderung: PC-Ordner und Jarvis aktualisieren (gebündelt) */
 function scheduleExtras(delay = 4000) {
   clearTimeout(extrasTimer);
-  extrasTimer = setTimeout(async () => { await mirrorNow(); await jarvisPush(); }, delay);
+  extrasTimer = setTimeout(async () => { await mirrorNow(); await jarvisPull(); await jarvisPush(); }, delay);
+}
+/* Änderungen abholen, die Jarvis im Claude-Chat über den Connector hinterlegt hat */
+let jarvisPulling = false;
+async function jarvisPull(manual = false) {
+  if (!jarvisCfg().enabled || !state.meta._account || jarvisPulling) return;
+  jarvisPulling = true;
+  try {
+    const list = (await (await jarvisFetch('/lifebook/proposals')).json()).proposals || [];
+    const known = new Set([...(state.meta.jarvisInbox || []).map(s => s.id), ...(state.meta.jarvisLog || []).map(l => l.id)]);
+    let applied = 0, queued = 0;
+    for (const p of list) {
+      const id = 'jp-' + p.pid;
+      if (!known.has(id)) {
+        const v = validSuggestion({ ...p.proposal, reason: p.proposal?.reason || p.summary });
+        // Eintrag (noch) unbekannt, z.B. weil dieses Gerät noch nicht synchronisiert ist: später nochmals versuchen
+        if (!v && Date.now() - new Date(p.created || 0) < 7 * 864e5) continue;
+        if (v) {
+          v.id = id; v.summary = String(p.summary || '').slice(0, 300); v.received = p.created || v.received;
+          if (p.approved) { if (await applyCore(v, true)) applied++; }
+          else { await setMeta('jarvisInbox', [...(state.meta.jarvisInbox || []), v]); queued++; }
+          known.add(id);
+        }
+      }
+      await jarvisFetch('/lifebook/proposals/' + p.pid, { method: 'DELETE' });
+    }
+    if (applied) toast(`🤖 Jarvis hat ${applied === 1 ? 'eine Änderung' : applied + ' Änderungen'} eingetragen (rückgängig unter „Vorschläge")`);
+    if (queued) toast(`🤖 Jarvis hat ${queued === 1 ? 'einen Vorschlag' : queued + ' Vorschläge'} für dich`);
+    if (!applied && !queued && manual) toast('Keine neuen Änderungen von Jarvis');
+    if ((applied || queued) && !/^#\/(edit|new)\//.test(currentRoute)) route();
+  } catch (e) {
+    console.warn('Jarvis-Abholung:', e);
+    if (manual) toast(e.message || String(e));
+  } finally { jarvisPulling = false; }
 }
 
 function viewJarvis() {
@@ -2778,30 +2818,67 @@ function suggestionCard(s) {
   </div>`;
 }
 function viewSuggestions() {
-  const list = state.meta.jarvisInbox || [];
+  const list = state.meta.jarvisInbox || [], log = (state.meta.jarvisLog || []).slice(0, 20);
   main.innerHTML = `
-    <div class="page-head"><div><h1>🤖 Vorschläge von Jarvis</h1><p class="muted">Hier schlägt Jarvis (Claude) Änderungen an deinen Einträgen vor. Nichts wird gespeichert, bevor du auf „Übernehmen" klickst.</p></div></div>
-    ${list.length ? `<div class="stack">${list.map(suggestionCard).join('')}</div>` : `<div class="card empty"><div class="big">🤖</div><p>Keine offenen Vorschläge.</p></div>`}`;
+    <div class="page-head"><div><h1>🤖 Vorschläge von Jarvis</h1><p class="muted">Hier schlägt Jarvis (Claude) Änderungen an deinen Einträgen vor. Nichts wird gespeichert, bevor du auf „Übernehmen" klickst – ausser du hast es Jarvis im Chat ausdrücklich bestätigt. Solche Änderungen kannst du unten rückgängig machen.</p></div>
+      ${jarvisCfg().enabled && state.meta._account ? `<button class="btn" data-act="jarvis-pull">🔄 Neue abholen</button>` : ''}</div>
+    ${list.length ? `<div class="stack">${list.map(suggestionCard).join('')}</div>` : `<div class="card empty"><div class="big">🤖</div><p>Keine offenen Vorschläge.</p></div>`}
+    ${log.length ? `<div class="card" style="margin-top:16px"><h2>Zuletzt von Jarvis eingetragen</h2>
+      <div class="stack" style="gap:8px">${log.map(l => `<div class="row" style="display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <div><div>${l.undone ? '<s>' : ''}${h(l.summary)}${l.undone ? '</s>' : ''}</div><div class="small muted">${l.auto ? '🎙️ im Chat bestätigt' : '✅ von dir übernommen'} · ${h(timeAgo(l.at))}${l.undone ? ' · rückgängig gemacht' : ''}</div></div>
+        <div class="actions">${byId(l.entryId) ? `<a class="btn sm" href="#/entry/${l.entryId}">Ansehen</a>` : ''}${l.undone ? '' : `<button class="btn sm" data-act="sug-undo" data-id="${h(l.id)}">↩️ Rückgängig</button>`}</div>
+      </div>`).join('')}</div></div>` : ''}`;
 }
-async function applySuggestion(id) {
-  const list = state.meta.jarvisInbox || [], s = list.find(x => x.id === id);
-  if (!s) return;
-  let e;
+/* Vorschlag anwenden; auto = von dir im Claude-Chat bereits bestätigt → mit Rückgängig-Eintrag im Protokoll */
+async function applyCore(s, auto = false) {
+  let e, before = null;
   if (s.action === 'update') {
     e = byId(s.entryId);
-    if (!e) { toast('Diesen Eintrag gibt es nicht mehr'); return dropSuggestion(id, true); }
+    if (!e) return null;
+    before = JSON.parse(JSON.stringify({ data: e.data, tags: e.tags || [], related: e.related || [] }));
     Object.assign(e.data, s.data);
   } else {
+    const newId = String(s.id || '').startsWith('jp-') ? s.id : uid();
+    if (byId(newId)) return null; // schon auf einem anderen Gerät eingetragen
     const now = new Date().toISOString();
-    e = { id: uid(), topic: s.topic, data: { ...s.data }, tags: [], related: [], created: now, updated: now };
+    e = { id: newId, topic: s.topic, data: { ...s.data }, tags: [], related: [], created: now, updated: now };
     state.entries.push(e);
   }
   e.tags = [...new Set([...(e.tags || []).filter(x => !s.removeTags.includes(x)), ...s.addTags])];
   e.related = [...new Set([...(e.related || []), ...(s.addRelated || [])])];
   await saveEntry(e);
-  await setMeta('jarvisInbox', list.filter(x => x.id !== id));
+  const log = { id: s.id, at: new Date().toISOString(), auto, entryId: e.id, action: s.action, summary: s.summary || (s.action === 'create' ? 'Neu: ' : '') + title(e), before };
+  await setMeta('jarvisLog', [log, ...(state.meta.jarvisLog || [])].slice(0, 40));
+  return e;
+}
+async function applySuggestion(id) {
+  const list = state.meta.jarvisInbox || [], s = list.find(x => x.id === id);
+  if (!s) return;
+  const e = await applyCore(s);
+  await setMeta('jarvisInbox', (state.meta.jarvisInbox || []).filter(x => x.id !== id));
+  if (!e) { toast('Diesen Eintrag gibt es nicht mehr'); return route(); }
   toast('Übernommen ✓');
   go('#/entry/' + e.id);
+}
+async function undoJarvis(logId) {
+  const log = (state.meta.jarvisLog || []).find(l => l.id === logId);
+  if (!log || log.undone) return;
+  const e = byId(log.entryId);
+  if (!await ask(`„${log.summary}" rückgängig machen?`, 'Rückgängig machen')) return;
+  if (log.action === 'create') {
+    if (e) {
+      for (const f of await filesFor(e.id)) await dbDel('files', f.id);
+      await dbDel('entries', e.id); await tombstone('entry', [e.id]);
+      state.entries = state.entries.filter(x => x.id !== e.id);
+      scheduleSync(); scheduleExtras();
+    }
+  } else if (e && log.before) {
+    e.data = log.before.data; e.tags = log.before.tags; e.related = log.before.related;
+    await saveEntry(e);
+  }
+  await setMeta('jarvisLog', (state.meta.jarvisLog || []).map(l => l.id === logId ? { ...l, undone: true } : l));
+  toast('Rückgängig gemacht ✓');
+  route();
 }
 async function dropSuggestion(id, silent = false) {
   await setMeta('jarvisInbox', (state.meta.jarvisInbox || []).filter(x => x.id !== id));
@@ -2952,6 +3029,8 @@ document.addEventListener('click', async ev => {
   else if (act === 'jarvis-push') jarvisPush(true);
   else if (act === 'sug-apply') applySuggestion(el.dataset.id);
   else if (act === 'sug-drop') dropSuggestion(el.dataset.id);
+  else if (act === 'sug-undo') undoJarvis(el.dataset.id);
+  else if (act === 'jarvis-pull') jarvisPull(true);
   else if (act === 'jarvis-delete') jarvisDeleteAll();
   else if (act === 'snd-filter') { senderView.f = el.dataset.f; senderView.limit = 150; renderSenderList(); }
   else if (act === 'snd-more') { senderView.limit += 150; renderSenderList(); }
