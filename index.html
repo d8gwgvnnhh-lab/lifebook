@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -156,7 +156,7 @@ table.tbl .bar>div{height:100%;background:var(--accent)}
 .form .field{display:block;margin-bottom:14px;border:0;padding:0;min-width:0}
 .form .field>span,.form legend{display:block;font-weight:600;font-size:14px;margin-bottom:5px;padding:0}
 .form .field small,.form legend small{font-weight:400;color:var(--muted)}
-.form input[type=text],.form input[type=email],.form input[type=tel],.form input[type=url],.form input[type=number],.form input[type=date],.form input[type=search],.form select,.form textarea{
+.form input[type=text],.form input[type=email],.form input[type=tel],.form input[type=url],.form input[type=number],.form input[type=date],.form input[type=search],.form input[type=password],.form select,.form textarea{
   width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--panel)}
 .form textarea{resize:vertical;min-height:80px}
 .form input:focus,.form select:focus,.form textarea:focus,.searchwrap input:focus{outline:2px solid color-mix(in srgb,var(--accent) 45%,transparent);outline-offset:0;border-color:var(--accent)}
@@ -211,12 +211,12 @@ main{padding-bottom:max(60px,env(safe-area-inset-bottom))}
   body.nav-open .sidebar{transform:none}
   body.nav-open::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:15}
   .menu-btn{display:inline-flex}
-  .topbar{padding:10px 16px}
+  .topbar{padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top))}
   main{padding:18px 16px 60px}
   .grid2{grid-template-columns:1fr}
   .dl{grid-template-columns:1fr}
   .dl>.k{border-bottom:0;padding-bottom:0}
-  /* 16px stops iPhone Safari from zooming into fields */
+  /* 16px verhindert, dass Safari auf dem iPhone in Felder hineinzoomt */
   input,select,textarea,.form input,.form select,.form textarea{font-size:16px !important}
   #syncchip span{display:none}
 }
@@ -227,8 +227,8 @@ main{padding-bottom:max(60px,env(safe-area-inset-bottom))}
   <aside class="sidebar" id="sidebar"></aside>
   <div class="content">
     <div class="topbar">
-      <button class="btn sm menu-btn" data-act="toggle-nav" aria-label="Menu">☰</button>
-      <div class="searchwrap"><input id="q" type="search" placeholder="Search everything…  ( / )" autocomplete="off"></div>
+      <button class="btn sm menu-btn" data-act="toggle-nav" aria-label="Menü">☰</button>
+      <div class="searchwrap"><input id="q" type="search" placeholder="Alles durchsuchen…  ( / )" autocomplete="off"></div>
       <a class="btn sm" id="syncchip" href="#/sync" hidden></a>
     </div>
     <main id="main"></main>
@@ -239,10 +239,56 @@ main{padding-bottom:max(60px,env(safe-area-inset-bottom))}
 
 <script>
 /* =====================================================================
-   COUNTRY KNOWLEDGE
-   Address format, postal code rules, ID documents and the insurance
-   system per country. Used by "About me" and "Contracts & finances".
-   Insurance information is a general orientation, not advice.
+   ANZEIGE-TEXTE FÜR AUSWAHLWERTE
+   Gespeichert werden die (englischen) Werte links, angezeigt die deutschen
+   Texte rechts. So bleiben bestehende Daten und die Synchronisierung gültig.
+   ===================================================================== */
+const DE = {
+  // allgemein
+  'Other': 'Sonstiges', 'Active': 'Aktiv', 'Done': 'Erledigt', 'Open': 'Offen',
+  // Geschlecht
+  'Female': 'Weiblich', 'Male': 'Männlich', 'Diverse / not specified': 'Divers / keine Angabe',
+  // Gesundheit
+  'Appointment': 'Termin', 'Medication': 'Medikament', 'Vaccination': 'Impfung', 'Check-up': 'Vorsorge / Check-up',
+  'Condition': 'Erkrankung', 'Note': 'Notiz', 'Ongoing': 'Laufend',
+  // Verträge
+  'Insurance': 'Versicherung', 'Phone & Internet': 'Telefon & Internet', 'Streaming & Media': 'Streaming & Medien',
+  'AI & Software': 'KI & Software', 'Subscription': 'Abo', 'Housing': 'Wohnen', 'Utilities': 'Energie & Nebenkosten',
+  'Bank & Credit': 'Bank & Kredit', 'Leasing': 'Leasing', 'Cancelled': 'Gekündigt', 'Ended': 'Beendet',
+  'Monthly': 'Monatlich', 'Quarterly': 'Vierteljährlich', 'Yearly': 'Jährlich', 'One-time': 'Einmalig',
+  'Standard (free choice of doctor)': 'Standard (freie Arztwahl)', 'Family doctor (Hausarzt)': 'Hausarztmodell',
+  'Statutory (GKV)': 'Gesetzlich (GKV)', 'Private (PKV)': 'Privat (PKV)',
+  // Kontakte
+  'Family': 'Familie', 'Friend': 'Freund/in', 'Work': 'Arbeit', 'Doctor': 'Arzt / Ärztin', 'Service': 'Dienstleister',
+  // Dokumente
+  'Email': 'E-Mail', 'Letter': 'Brief', 'Invoice': 'Rechnung', 'Receipt': 'Quittung / Beleg',
+  'Contract document': 'Vertragsdokument', 'Certificate': 'Zertifikat / Urkunde',
+  // Ziele & Ideen
+  'Health': 'Gesundheit', 'Career': 'Karriere', 'Finance': 'Finanzen', 'Learning': 'Lernen', 'Relationships': 'Beziehungen',
+  'Personal': 'Persönlich', 'Travel': 'Reisen', 'Idea': 'Idee', 'Paused': 'Pausiert',
+  'Project': 'Projekt', 'Business': 'Geschäft', 'Gift': 'Geschenk', 'Purchase': 'Anschaffung',
+  'New': 'Neu', 'Considering': 'In Überlegung', 'Doing': 'In Arbeit', 'Dropped': 'Verworfen',
+  // Ausweise
+  'Passport': 'Reisepass', 'Identity card': 'Identitätskarte', 'Driving licence': 'Führerausweis',
+  'Residence permit B': 'Aufenthaltsbewilligung B', 'Settlement permit C': 'Niederlassungsbewilligung C',
+  'Short-term permit L': 'Kurzaufenthaltsbewilligung L', 'Cross-border permit G': 'Grenzgängerbewilligung G',
+  'Health insurance card': 'Krankenkassenkarte', 'AHV/AVS number': 'AHV-Nummer', 'Residence permit': 'Aufenthaltsbewilligung',
+  'Passport (Reisepass)': 'Reisepass', 'Identity card (Personalausweis)': 'Personalausweis',
+  'Driving licence (Führerschein)': 'Führerschein', 'Residence permit (Aufenthaltstitel)': 'Aufenthaltstitel',
+  'Health card (eGK)': 'Gesundheitskarte (eGK)', 'Tax ID (Steuer-ID)': 'Steuer-ID', 'Social security number': 'Sozialversicherungsnummer',
+  'Identity card (CNI)': 'Identitätskarte (CNI)', 'Residence permit (titre de séjour)': 'Aufenthaltstitel (titre de séjour)',
+  'Identity card (CIE)': 'Identitätskarte (CIE)', 'Health card (Tessera sanitaria)': 'Gesundheitskarte (Tessera sanitaria)',
+  'Tax code (Codice fiscale)': 'Steuernummer (Codice fiscale)', 'Residence permit / eVisa': 'Aufenthaltstitel / eVisa',
+  'National Insurance number': 'National Insurance Number', 'Passport card': 'Passkarte', "Driver's license": 'Führerschein',
+  'State ID': 'State ID', 'Green card': 'Green Card', 'Social Security number': 'Social Security Number',
+};
+const L = v => DE[v] ?? v;
+const LOCALE = 'de-CH';
+
+/* =====================================================================
+   LÄNDERWISSEN
+   Adressformat, PLZ-Regeln, Ausweistypen und Versicherungssystem pro Land.
+   Die Versicherungsinfos sind eine allgemeine Orientierung, keine Beratung.
    ===================================================================== */
 const CH_HEALTH = ['Assura', 'Atupri', 'Concordia', 'CSS', 'EGK', 'Groupe Mutuel', 'Helsana', 'KPT', 'ÖKK', 'Sanitas', 'Swica', 'Sympany', 'Visana'];
 const CH_GENERAL = ['AXA', 'Allianz Suisse', 'Baloise', 'Die Mobiliar', 'Generali', 'Helvetia', 'Smile', 'TCS', 'Vaudoise', 'Zurich'];
@@ -252,120 +298,120 @@ const AT_GENERAL = ['Allianz', 'Donau', 'Generali', 'Grawe', 'HDI', 'Merkur', 'U
 
 const lvl = (key, name, level, note = '', providers = []) => ({ key, name, level, note, providers });
 const genericInsurance = (healthLevel, healthNote = '') => [
-  lvl('gen_health', 'Health insurance', healthLevel, healthNote),
-  lvl('gen_liability', 'Personal liability', 'recommended', 'Covers damage you accidentally cause to other people or their property.'),
-  lvl('gen_household', 'Home contents / renters', 'recommended', 'Covers your belongings against fire, water damage and theft.'),
-  lvl('gen_motor', 'Motor vehicle', 'conditional', 'Liability cover is usually mandatory if you own a vehicle.'),
-  lvl('gen_building', 'Building / homeowners', 'conditional', 'For property owners; usually required by mortgage lenders.'),
-  lvl('gen_disability', 'Disability / income protection', 'optional', 'Pays if you can no longer work.'),
-  lvl('gen_life', 'Life insurance', 'optional', 'Relevant if others depend on your income.'),
-  lvl('gen_travel', 'Travel insurance', 'optional', 'Medical costs abroad, cancellation, repatriation.'),
-  lvl('gen_legal', 'Legal protection', 'optional', 'Lawyer and court costs.'),
+  lvl('gen_health', 'Krankenversicherung', healthLevel, healthNote),
+  lvl('gen_liability', 'Privathaftpflicht', 'recommended', 'Deckt Schäden, die du anderen Personen oder deren Eigentum versehentlich zufügst.'),
+  lvl('gen_household', 'Hausrat', 'recommended', 'Deckt dein Hab und Gut bei Feuer, Wasserschaden und Diebstahl.'),
+  lvl('gen_motor', 'Motorfahrzeugversicherung', 'conditional', 'Die Haftpflicht ist meist obligatorisch, wenn du ein Fahrzeug besitzt.'),
+  lvl('gen_building', 'Gebäudeversicherung', 'conditional', 'Für Eigentümer; wird meist von der Bank (Hypothek) verlangt.'),
+  lvl('gen_disability', 'Erwerbsunfähigkeit / Einkommensschutz', 'optional', 'Zahlt, wenn du nicht mehr arbeiten kannst.'),
+  lvl('gen_life', 'Lebensversicherung', 'optional', 'Wichtig, wenn andere von deinem Einkommen abhängen.'),
+  lvl('gen_travel', 'Reiseversicherung', 'optional', 'Arztkosten im Ausland, Annullierung, Rücktransport.'),
+  lvl('gen_legal', 'Rechtsschutz', 'optional', 'Anwalts- und Gerichtskosten.'),
 ];
 const OTHER_ID = ['Passport', 'Identity card', 'Driving licence', 'Residence permit', 'Other'];
 
 const COUNTRIES = {
   CH: {
-    name: 'Switzerland', flag: '🇨🇭', currency: 'CHF', lookup: 'swisstopo', example: 'Bahnhofstrasse 1, Zürich',
-    zip: /^\d{4}$/, zipHint: '4 digits', zipLabel: 'Postal code (PLZ)', cityLabel: 'City / town',
-    regionLabel: 'Canton', regions: ['AG', 'AI', 'AR', 'BE', 'BL', 'BS', 'FR', 'GE', 'GL', 'GR', 'JU', 'LU', 'NE', 'NW', 'OW', 'SG', 'SH', 'SO', 'SZ', 'TG', 'TI', 'UR', 'VD', 'VS', 'ZG', 'ZH'],
+    name: 'Schweiz', flag: '🇨🇭', currency: 'CHF', lookup: 'swisstopo', example: 'Bahnhofstrasse 1, Zürich',
+    zip: /^\d{4}$/, zipHint: '4 Ziffern', zipLabel: 'PLZ', cityLabel: 'Ort',
+    regionLabel: 'Kanton', regions: ['AG', 'AI', 'AR', 'BE', 'BL', 'BS', 'FR', 'GE', 'GL', 'GR', 'JU', 'LU', 'NE', 'NW', 'OW', 'SG', 'SH', 'SO', 'SZ', 'TG', 'TI', 'UR', 'VD', 'VS', 'ZG', 'ZH'],
     idTypes: ['Passport', 'Identity card', 'Driving licence', 'Residence permit B', 'Settlement permit C', 'Short-term permit L', 'Cross-border permit G', 'Health insurance card', 'AHV/AVS number', 'Other'],
     telcos: ['Swisscom', 'Sunrise', 'Salt', 'Wingo', 'Yallo', 'M-Budget Mobile', 'Quickline', 'Init7', 'iWay'],
     insurers: [...CH_GENERAL, ...CH_HEALTH],
-    system: `<p><b>Health:</b> basic health insurance (KVG/LAMal) is mandatory for everyone living in Switzerland. You choose the insurer, a yearly deductible (franchise, CHF 300–2,500 for adults) and a model (standard, family doctor, HMO or telemedicine). Basic benefits are identical at every insurer, so only the premium differs. Supplementary insurance (VVG) is optional, and insurers may refuse you.</p>
-      <p><b>Accident:</b> if you work at least 8 hours a week for one employer, the employer insures you (UVG). Otherwise, accident cover must be included in your health insurance.</p>
-      <p><b>Retirement (3 pillars):</b> 1st pillar AHV/IV (state, mandatory) · 2nd pillar BVG pension fund (through your employer) · 3rd pillar 3a/3b (voluntary private savings; 3a contributions are tax-deductible).</p>`,
+    system: `<p><b>Gesundheit:</b> Die Grundversicherung (KVG) ist für alle obligatorisch, die in der Schweiz wohnen. Du wählst die Krankenkasse, eine Jahresfranchise (für Erwachsene CHF 300–2'500) und ein Modell (Standard, Hausarzt, HMO oder Telmed). Die Leistungen der Grundversicherung sind bei allen Kassen gleich, nur die Prämie unterscheidet sich. Zusatzversicherungen (VVG) sind freiwillig, und die Kasse darf dich ablehnen.</p>
+      <p><b>Unfall:</b> Arbeitest du mindestens 8 Stunden pro Woche bei einem Arbeitgeber, versichert dich dieser (UVG). Sonst muss die Unfalldeckung in deiner Krankenkasse eingeschlossen sein.</p>
+      <p><b>Vorsorge (3 Säulen):</b> 1. Säule AHV/IV (staatlich, obligatorisch) · 2. Säule BVG-Pensionskasse (über den Arbeitgeber) · 3. Säule 3a/3b (freiwilliges Sparen; Einzahlungen in die Säule 3a sind steuerlich abziehbar).</p>`,
     insurance: [
-      lvl('ch_health_basic', 'Basic health insurance (KVG/LAMal)', 'mandatory', 'Required for everyone living in Switzerland (within 3 months of arrival). Compare premium, deductible and model.', CH_HEALTH),
-      lvl('ch_health_supp', 'Supplementary health insurance (VVG)', 'optional', 'E.g. dental, semi-private/private hospital ward, alternative medicine.', CH_HEALTH),
-      lvl('ch_accident', 'Accident insurance', 'mandatory', 'Via your employer (UVG) if you work 8+ h/week for one employer, otherwise included in your health insurance.', CH_HEALTH),
-      lvl('ch_liability', 'Personal liability (Privathaftpflicht)', 'recommended', 'Covers damage you cause to others. Often required by landlords.', CH_GENERAL),
-      lvl('ch_household', 'Household contents (Hausrat)', 'recommended', 'Covers your belongings against fire, water damage and theft. Mandatory in a few cantons.', CH_GENERAL),
-      lvl('ch_motor', 'Motor vehicle liability', 'conditional', 'Mandatory if you own a car or motorbike. Partial/full comprehensive cover (Teil-/Vollkasko) is optional.', CH_GENERAL),
-      lvl('ch_building', 'Building insurance', 'conditional', 'For property owners. Mandatory in most cantons, often with the cantonal building insurer.', CH_GENERAL),
-      lvl('ch_legal', 'Legal protection (Rechtsschutz)', 'optional', 'Lawyer and court costs, e.g. disputes with landlords or employers.', [...CH_GENERAL, 'Coop Rechtsschutz', 'CAP', 'Protekta', 'Dextra']),
-      lvl('ch_travel', 'Travel & assistance', 'optional', 'Cancellation costs, repatriation, emergency help abroad.', [...CH_GENERAL, 'ERV (Europäische Reiseversicherung)']),
-      lvl('ch_life', 'Life / death risk insurance', 'optional', 'Relevant if others depend on your income or you have a mortgage.', CH_GENERAL),
-      lvl('ch_3a', 'Pillar 3a (private pension)', 'optional', 'Voluntary retirement savings with tax-deductible contributions up to a yearly maximum.', ['VIAC', 'frankly', 'finpension', 'Your bank', ...CH_GENERAL]),
+      lvl('ch_health_basic', 'Grundversicherung Krankenkasse (KVG)', 'mandatory', 'Für alle Personen mit Wohnsitz in der Schweiz (innerhalb von 3 Monaten nach Zuzug). Vergleiche Prämie, Franchise und Modell.', CH_HEALTH),
+      lvl('ch_health_supp', 'Zusatzversicherung Krankenkasse (VVG)', 'optional', 'Z.B. Zahnbehandlung, halbprivate/private Spitalabteilung, Alternativmedizin.', CH_HEALTH),
+      lvl('ch_accident', 'Unfallversicherung', 'mandatory', 'Über den Arbeitgeber (UVG) bei mind. 8 Std./Woche bei einem Arbeitgeber, sonst in der Krankenkasse eingeschlossen.', CH_HEALTH),
+      lvl('ch_liability', 'Privathaftpflicht', 'recommended', 'Deckt Schäden, die du anderen zufügst. Wird oft vom Vermieter verlangt.', CH_GENERAL),
+      lvl('ch_household', 'Hausrat', 'recommended', 'Deckt dein Hab und Gut bei Feuer, Wasserschaden und Diebstahl. In einigen Kantonen obligatorisch.', CH_GENERAL),
+      lvl('ch_motor', 'Motorfahrzeughaftpflicht', 'conditional', 'Obligatorisch, wenn du ein Auto oder Motorrad besitzt. Teil-/Vollkasko ist freiwillig.', CH_GENERAL),
+      lvl('ch_building', 'Gebäudeversicherung', 'conditional', 'Für Eigentümer. In den meisten Kantonen obligatorisch, oft bei der kantonalen Gebäudeversicherung.', CH_GENERAL),
+      lvl('ch_legal', 'Rechtsschutz', 'optional', 'Anwalts- und Gerichtskosten, z.B. bei Streit mit Vermieter oder Arbeitgeber.', [...CH_GENERAL, 'Coop Rechtsschutz', 'CAP', 'Protekta', 'Dextra']),
+      lvl('ch_travel', 'Reise- & Assistance-Versicherung', 'optional', 'Annullierungskosten, Rücktransport, Nothilfe im Ausland.', [...CH_GENERAL, 'ERV (Europäische Reiseversicherung)']),
+      lvl('ch_life', 'Lebens- / Todesfallrisikoversicherung', 'optional', 'Wichtig, wenn andere von deinem Einkommen abhängen oder du eine Hypothek hast.', CH_GENERAL),
+      lvl('ch_3a', 'Säule 3a (private Vorsorge)', 'optional', 'Freiwilliges Vorsorgesparen; Einzahlungen bis zum jährlichen Maximum sind steuerlich abziehbar.', ['VIAC', 'frankly', 'finpension', 'Deine Bank', ...CH_GENERAL]),
     ],
   },
   DE: {
-    name: 'Germany', flag: '🇩🇪', currency: 'EUR', lookup: 'osm', example: 'Unter den Linden 1, Berlin',
-    zip: /^\d{5}$/, zipHint: '5 digits', zipLabel: 'Postal code (PLZ)', cityLabel: 'City / town',
+    name: 'Deutschland', flag: '🇩🇪', currency: 'EUR', lookup: 'osm', example: 'Unter den Linden 1, Berlin',
+    zip: /^\d{5}$/, zipHint: '5 Ziffern', zipLabel: 'PLZ', cityLabel: 'Ort',
     idTypes: ['Passport (Reisepass)', 'Identity card (Personalausweis)', 'Driving licence (Führerschein)', 'Residence permit (Aufenthaltstitel)', 'Health card (eGK)', 'Tax ID (Steuer-ID)', 'Social security number', 'Other'],
     telcos: ['Telekom', 'Vodafone', 'O2', '1&1', 'congstar'],
     insurers: [...DE_GENERAL, ...DE_HEALTH],
-    system: `<p><b>Health:</b> health insurance is compulsory. Employees below the compulsory-insurance income threshold are in the statutory system (GKV). Contributions there depend on income and are shared with the employer, and you can choose your Krankenkasse freely. Civil servants, self-employed people and employees above the threshold can choose private insurance (PKV), where premiums depend on age, health and coverage.</p>
-      <p><b>Social insurance:</b> pension, unemployment and long-term care insurance are deducted from your salary. Statutory accident insurance for work is paid by your employer.</p>`,
+    system: `<p><b>Gesundheit:</b> Die Krankenversicherung ist Pflicht. Angestellte unter der Versicherungspflichtgrenze sind gesetzlich versichert (GKV). Die Beiträge hängen dort vom Einkommen ab und werden mit dem Arbeitgeber geteilt; die Krankenkasse kannst du frei wählen. Beamte, Selbständige und Angestellte über der Grenze können sich privat versichern (PKV). Dort hängen die Beiträge von Alter, Gesundheit und Leistungen ab.</p>
+      <p><b>Sozialversicherung:</b> Renten-, Arbeitslosen- und Pflegeversicherung werden vom Lohn abgezogen. Die gesetzliche Unfallversicherung für die Arbeit bezahlt der Arbeitgeber.</p>`,
     insurance: [
-      lvl('de_health', 'Health insurance (GKV or PKV)', 'mandatory', 'Everyone must be insured, either statutory or private.', DE_HEALTH),
-      lvl('de_care', 'Long-term care (Pflegeversicherung)', 'mandatory', 'Included with statutory health insurance; private policyholders need private care insurance.', DE_HEALTH),
-      lvl('de_liability', 'Personal liability (Privathaftpflicht)', 'recommended', 'Covers damage you cause to others.', DE_GENERAL),
-      lvl('de_household', 'Household contents (Hausrat)', 'recommended', 'Covers your belongings against fire, water damage and burglary.', DE_GENERAL),
-      lvl('de_motor', 'Motor liability (Kfz-Haftpflicht)', 'conditional', 'Mandatory to register a vehicle.', DE_GENERAL),
-      lvl('de_disability', 'Occupational disability (Berufsunfähigkeit)', 'recommended', 'Pays if you can no longer work in your profession; statutory protection is low.', DE_GENERAL),
-      lvl('de_travelhealth', 'Travel health insurance', 'recommended', 'Statutory insurance covers little outside the EU and no repatriation.', DE_GENERAL),
-      lvl('de_dental', 'Supplementary dental', 'optional', '', DE_HEALTH),
-      lvl('de_legal', 'Legal protection (Rechtsschutz)', 'optional', '', DE_GENERAL),
-      lvl('de_building', 'Building insurance (Wohngebäude)', 'conditional', 'For homeowners; usually required by the mortgage lender.', DE_GENERAL),
-      lvl('de_life', 'Term life (Risikoleben)', 'optional', 'Relevant with dependants or a mortgage.', DE_GENERAL),
+      lvl('de_health', 'Krankenversicherung (GKV oder PKV)', 'mandatory', 'Alle müssen versichert sein, gesetzlich oder privat.', DE_HEALTH),
+      lvl('de_care', 'Pflegeversicherung', 'mandatory', 'Bei gesetzlich Versicherten automatisch dabei; Privatversicherte brauchen eine private Pflegeversicherung.', DE_HEALTH),
+      lvl('de_liability', 'Privathaftpflicht', 'recommended', 'Deckt Schäden, die du anderen zufügst.', DE_GENERAL),
+      lvl('de_household', 'Hausrat', 'recommended', 'Deckt dein Hab und Gut bei Feuer, Wasserschaden und Einbruch.', DE_GENERAL),
+      lvl('de_motor', 'Kfz-Haftpflicht', 'conditional', 'Pflicht, um ein Fahrzeug anzumelden.', DE_GENERAL),
+      lvl('de_disability', 'Berufsunfähigkeitsversicherung', 'recommended', 'Zahlt, wenn du deinen Beruf nicht mehr ausüben kannst; der gesetzliche Schutz ist gering.', DE_GENERAL),
+      lvl('de_travelhealth', 'Auslandsreisekrankenversicherung', 'recommended', 'Die GKV zahlt ausserhalb der EU wenig und keinen Rücktransport.', DE_GENERAL),
+      lvl('de_dental', 'Zahnzusatzversicherung', 'optional', '', DE_HEALTH),
+      lvl('de_legal', 'Rechtsschutz', 'optional', '', DE_GENERAL),
+      lvl('de_building', 'Wohngebäudeversicherung', 'conditional', 'Für Eigentümer; wird meist von der Bank verlangt.', DE_GENERAL),
+      lvl('de_life', 'Risikolebensversicherung', 'optional', 'Wichtig mit Angehörigen oder einem Kredit.', DE_GENERAL),
     ],
   },
   AT: {
-    name: 'Austria', flag: '🇦🇹', currency: 'EUR', lookup: 'osm', example: 'Stephansplatz 1, Wien',
-    zip: /^\d{4}$/, zipHint: '4 digits', zipLabel: 'Postal code (PLZ)', cityLabel: 'City / town',
+    name: 'Österreich', flag: '🇦🇹', currency: 'EUR', lookup: 'osm', example: 'Stephansplatz 1, Wien',
+    zip: /^\d{4}$/, zipHint: '4 Ziffern', zipLabel: 'PLZ', cityLabel: 'Ort',
     idTypes: ['Passport (Reisepass)', 'Identity card (Personalausweis)', 'Driving licence (Führerschein)', 'Residence permit', 'e-card', 'Social security number', 'Other'],
     telcos: ['A1', 'Magenta', 'Drei', 'HoT', 'spusu'],
     insurers: AT_GENERAL,
-    system: `<p><b>Social insurance:</b> employees and self-employed people are insured automatically for health, accident and pension (employees also for unemployment). Your occupation decides the insurer, for example ÖGK for most employees, BVAEB for public servants and SVS for the self-employed, so you don't choose one. Your e-card proves you're insured.</p>
-      <p><b>Private:</b> supplementary health insurance (e.g. "Sonderklasse" hospital cover) and most property insurances are optional.</p>`,
+    system: `<p><b>Sozialversicherung:</b> Angestellte und Selbständige sind automatisch kranken-, unfall- und pensionsversichert (Angestellte auch arbeitslosenversichert). Der Beruf bestimmt den Versicherungsträger, z.B. ÖGK für die meisten Angestellten, BVAEB für Beamte, SVS für Selbständige. Du wählst ihn also nicht selbst. Die e-card ist dein Versicherungsnachweis.</p>
+      <p><b>Privat:</b> Zusatzversicherungen (z.B. „Sonderklasse" im Spital) und die meisten Sachversicherungen sind freiwillig.</p>`,
     insurance: [
-      lvl('at_social', 'Social health insurance (ÖGK / BVAEB / SVS)', 'mandatory', 'Automatic through employment or self-employment.', ['ÖGK', 'BVAEB', 'SVS']),
-      lvl('at_private_health', 'Private supplementary health (Sonderklasse)', 'optional', '', ['Uniqa', 'Merkur', 'Generali', 'Wiener Städtische']),
-      lvl('at_household', 'Household insurance (Haushaltsversicherung)', 'recommended', 'Usually includes personal liability cover.', AT_GENERAL),
-      lvl('at_liability', 'Personal liability (if not in household insurance)', 'recommended', '', AT_GENERAL),
-      lvl('at_motor', 'Motor liability (Kfz-Haftpflicht)', 'conditional', 'Mandatory if you own a vehicle.', AT_GENERAL),
-      lvl('at_disability', 'Occupational disability (Berufsunfähigkeit)', 'optional', '', AT_GENERAL),
-      lvl('at_travel', 'Travel insurance', 'optional', '', AT_GENERAL),
-      lvl('at_legal', 'Legal protection (Rechtsschutz)', 'optional', '', AT_GENERAL),
-      lvl('at_building', 'Building insurance', 'conditional', 'For homeowners; usually required by the mortgage lender.', AT_GENERAL),
-      lvl('at_life', 'Life insurance', 'optional', '', AT_GENERAL),
+      lvl('at_social', 'Gesetzliche Krankenversicherung (ÖGK / BVAEB / SVS)', 'mandatory', 'Automatisch über die (selbständige) Erwerbstätigkeit.', ['ÖGK', 'BVAEB', 'SVS']),
+      lvl('at_private_health', 'Private Zusatzversicherung (Sonderklasse)', 'optional', '', ['Uniqa', 'Merkur', 'Generali', 'Wiener Städtische']),
+      lvl('at_household', 'Haushaltsversicherung', 'recommended', 'Enthält meist auch die Privathaftpflicht.', AT_GENERAL),
+      lvl('at_liability', 'Privathaftpflicht (falls nicht in der Haushaltsversicherung)', 'recommended', '', AT_GENERAL),
+      lvl('at_motor', 'Kfz-Haftpflicht', 'conditional', 'Pflicht, wenn du ein Fahrzeug besitzt.', AT_GENERAL),
+      lvl('at_disability', 'Berufsunfähigkeitsversicherung', 'optional', '', AT_GENERAL),
+      lvl('at_travel', 'Reiseversicherung', 'optional', '', AT_GENERAL),
+      lvl('at_legal', 'Rechtsschutz', 'optional', '', AT_GENERAL),
+      lvl('at_building', 'Eigenheimversicherung', 'conditional', 'Für Eigentümer; wird meist von der Bank verlangt.', AT_GENERAL),
+      lvl('at_life', 'Lebensversicherung', 'optional', '', AT_GENERAL),
     ],
   },
   LI: {
     name: 'Liechtenstein', flag: '🇱🇮', currency: 'CHF', lookup: 'osm', example: 'Städtle 1, Vaduz',
-    zip: /^94(8[5-9]|9[0-8])$/, zipHint: '9485–9498', zipLabel: 'Postal code (PLZ)', cityLabel: 'Municipality',
+    zip: /^94(8[5-9]|9[0-8])$/, zipHint: '9485–9498', zipLabel: 'PLZ', cityLabel: 'Gemeinde',
     idTypes: ['Passport', 'Identity card', 'Driving licence', 'Residence permit', 'Health insurance card', 'Other'],
-    insurance: genericInsurance('mandatory', 'Mandatory health insurance (OKP) for residents.'),
+    insurance: genericInsurance('mandatory', 'Obligatorische Krankenpflegeversicherung (OKP) für Einwohner.'),
   },
   FR: {
-    name: 'France', flag: '🇫🇷', currency: 'EUR', lookup: 'osm', example: '1 Rue de Rivoli, Paris', numberFirst: true,
-    zip: /^\d{5}$/, zipHint: '5 digits', zipLabel: 'Postal code', cityLabel: 'City / town',
+    name: 'Frankreich', flag: '🇫🇷', currency: 'EUR', lookup: 'osm', example: '1 Rue de Rivoli, Paris', numberFirst: true,
+    zip: /^\d{5}$/, zipHint: '5 Ziffern', zipLabel: 'PLZ', cityLabel: 'Ort',
     idTypes: ['Passport', 'Identity card (CNI)', 'Driving licence', 'Residence permit (titre de séjour)', 'Carte Vitale', 'Other'],
-    insurance: genericInsurance('mandatory', 'Public health insurance (Assurance Maladie); a complementary "mutuelle" is common.'),
+    insurance: genericInsurance('mandatory', 'Staatliche Krankenversicherung (Assurance Maladie); eine Zusatzversicherung („mutuelle") ist üblich.'),
   },
   IT: {
-    name: 'Italy', flag: '🇮🇹', currency: 'EUR', lookup: 'osm', example: 'Via del Corso 1, Roma',
-    zip: /^\d{5}$/, zipHint: '5 digits', zipLabel: 'Postal code (CAP)', cityLabel: 'City / town', regionLabel: 'Province',
+    name: 'Italien', flag: '🇮🇹', currency: 'EUR', lookup: 'osm', example: 'Via del Corso 1, Roma',
+    zip: /^\d{5}$/, zipHint: '5 Ziffern', zipLabel: 'PLZ (CAP)', cityLabel: 'Ort', regionLabel: 'Provinz',
     idTypes: ['Passport', 'Identity card (CIE)', 'Driving licence', 'Residence permit', 'Health card (Tessera sanitaria)', 'Tax code (Codice fiscale)', 'Other'],
-    insurance: genericInsurance('mandatory', 'Public health service (SSN) for residents.'),
+    insurance: genericInsurance('mandatory', 'Staatlicher Gesundheitsdienst (SSN) für Einwohner.'),
   },
   GB: {
-    name: 'United Kingdom', flag: '🇬🇧', currency: 'GBP', lookup: 'osm', example: '10 Downing Street, London', numberFirst: true,
-    zip: /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i, zipHint: 'e.g. SW1A 2AA', zipLabel: 'Postcode', cityLabel: 'Town / city',
+    name: 'Vereinigtes Königreich', flag: '🇬🇧', currency: 'GBP', lookup: 'osm', example: '10 Downing Street, London', numberFirst: true,
+    zip: /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i, zipHint: 'z.B. SW1A 2AA', zipLabel: 'Postcode', cityLabel: 'Ort',
     idTypes: ['Passport', 'Driving licence', 'Residence permit / eVisa', 'National Insurance number', 'Other'],
-    insurance: genericInsurance('optional', 'The NHS covers residents; private health insurance is optional.'),
+    insurance: genericInsurance('optional', 'Der NHS deckt Einwohner ab; eine private Krankenversicherung ist freiwillig.'),
   },
   US: {
-    name: 'United States', flag: '🇺🇸', currency: 'USD', lookup: 'osm', example: '1600 Pennsylvania Ave, Washington', numberFirst: true,
-    zip: /^\d{5}(-\d{4})?$/, zipHint: '5 digits (or ZIP+4)', zipLabel: 'ZIP code', cityLabel: 'City', regionLabel: 'State',
+    name: 'USA', flag: '🇺🇸', currency: 'USD', lookup: 'osm', example: '1600 Pennsylvania Ave, Washington', numberFirst: true,
+    zip: /^\d{5}(-\d{4})?$/, zipHint: '5 Ziffern (oder ZIP+4)', zipLabel: 'ZIP Code', cityLabel: 'Ort', regionLabel: 'Bundesstaat',
     regions: 'AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY'.split(' '),
     idTypes: ['Passport', 'Passport card', "Driver's license", 'State ID', 'Green card', 'Social Security number', 'Other'],
-    insurance: genericInsurance('recommended', 'Usually through your employer, the ACA Marketplace, Medicare or Medicaid.'),
+    insurance: genericInsurance('recommended', 'Meist über den Arbeitgeber, den ACA-Marktplatz, Medicare oder Medicaid.'),
   },
   OTHER: {
-    name: 'Other country', flag: '🌍', lookup: 'osm', example: 'Street 1, City',
-    zipLabel: 'Postal code', cityLabel: 'City / town', idTypes: OTHER_ID, insurance: genericInsurance('recommended'),
+    name: 'Anderes Land', flag: '🌍', lookup: 'osm', example: 'Strasse 1, Ort',
+    zipLabel: 'PLZ', cityLabel: 'Ort', idTypes: OTHER_ID, insurance: genericInsurance('recommended'),
   },
 };
 const SUGGEST = {
@@ -378,227 +424,227 @@ const myCountry = () => countryOf(profileEntry()?.data);
 const countryOptions = Object.entries(COUNTRIES).map(([k, c]) => ({ value: k, label: `${c.flag} ${c.name}` }));
 
 /* =====================================================================
-   TOPIC DEFINITIONS
-   The app builds forms, lists, details, reminders and summaries from
-   these definitions automatically.
-   Field types: text, textarea, number, money, date, select, country,
+   THEMEN-DEFINITIONEN
+   Formulare, Listen, Detailansichten, Erinnerungen und Zusammenfassungen
+   werden automatisch aus diesen Definitionen erzeugt.
+   Feldtypen: text, textarea, number, money, date, select, country,
      checkbox, phone, email, url, rating, progress, link, group
-     (repeatable rows), hidden, custom (own form/detail renderers)
-   Field options: section, showIf(d), options (array or fn(d)),
-     rerender (rebuild form on change), remind ('once'|'yearly'),
-     unit, placeholder (string or fn(d)), suggest(d) (autocomplete),
-     hideInDetail, label (string or fn(d))
+     (wiederholbare Zeilen), hidden, custom (eigene Darstellung)
+   Feld-Optionen: section, showIf(d), options (Liste oder fn(d)),
+     rerender (Formular bei Änderung neu aufbauen), remind ('once'|'yearly'),
+     unit, placeholder (Text oder fn(d)), suggest(d) (Vorschläge),
+     hideInDetail, label (Text oder fn(d))
    ===================================================================== */
 const F = (key, label, type = 'text', extra = {}) => ({ key, label, type, ...extra });
 
 const BUDGET = [
-  ['budgetGroceries', 'Groceries', '🛒'], ['budgetEatingOut', 'Eating out', '🍽️'], ['budgetClothing', 'Clothing', '👕'],
-  ['budgetLeisure', 'Leisure time', '🎉'], ['budgetVacation', 'Vacation', '🏖️'], ['budgetSavings', 'Savings', '🏦'],
-  ['budgetInvestments', 'Investments', '📈'], ['budgetTax', 'Taxes', '🧾'], ['budgetOther', 'Other', '📦'],
+  ['budgetGroceries', 'Lebensmittel', '🛒'], ['budgetEatingOut', 'Auswärts essen', '🍽️'], ['budgetClothing', 'Kleidung', '👕'],
+  ['budgetLeisure', 'Freizeit', '🎉'], ['budgetVacation', 'Ferien', '🏖️'], ['budgetSavings', 'Sparen', '🏦'],
+  ['budgetInvestments', 'Investitionen', '📈'], ['budgetTax', 'Steuern', '🧾'], ['budgetOther', 'Sonstiges', '📦'],
 ];
 const notMale = d => d.gender !== 'Male';
 const notFemale = d => d.gender !== 'Female';
 
 const TOPICS = [
   {
-    id: 'profile', name: 'About me', icon: '🙂', color: '#3a68f0', single: true,
-    description: 'Your personal details, address, IDs, sizes, budget and insurance overview.',
+    id: 'profile', name: 'Über mich', icon: '🙂', color: '#3a68f0', single: true,
+    description: 'Deine persönlichen Daten, Adresse, Ausweise, Grössen, Budget und Versicherungsübersicht.',
     sectionNotes: {
-      'Address': d => `Fields follow the address format for ${countryOf(d).flag} ${countryOf(d).name}. Change the country under Personal.`,
-      'ID documents': () => 'Expiry dates show up under "Coming up".',
-      'Clothing sizes': d => d.gender ? `Showing size fields for: ${d.gender.toLowerCase()}.` : 'Choose a gender under Personal to show only the matching size fields.',
-      'Monthly budget': () => 'Amounts per month. For yearly costs like vacation or taxes, divide by 12. Fixed costs come from your recurring charges automatically.',
+      'Adresse': d => `Die Felder folgen dem Adressformat für ${countryOf(d).flag} ${countryOf(d).name}. Das Land änderst du unter „Persönliches".`,
+      'Ausweise & Dokumente': () => 'Ablaufdaten erscheinen unter „Demnächst".',
+      'Kleidergrössen': d => d.gender ? `Grössenfelder für: ${L(d.gender).toLowerCase()}.` : 'Wähle unter „Persönliches" ein Geschlecht, um nur die passenden Grössenfelder zu sehen.',
+      'Monatsbudget': () => 'Beträge pro Monat. Jährliche Kosten wie Ferien oder Steuern durch 12 teilen. Die Fixkosten kommen automatisch aus deinen wiederkehrenden Kosten.',
     },
     fields: [
-      F('firstName', 'First name', 'text', { required: true, section: 'Personal' }),
-      F('lastName', 'Last name', 'text', { section: 'Personal' }),
-      F('gender', 'Gender', 'select', { section: 'Personal', options: ['Female', 'Male', 'Diverse / not specified'], rerender: true }),
-      F('birthday', 'Birthday', 'date', { section: 'Personal', remind: 'yearly', remindLabel: 'Your birthday' }),
-      F('country', 'Country of residence', 'country', { section: 'Personal', rerender: true }),
-      F('nationality', 'Nationality', 'text', { section: 'Personal' }),
-      F('phone', 'Phone', 'phone', { section: 'Personal' }),
-      F('email', 'Email', 'email', { section: 'Personal' }),
+      F('firstName', 'Vorname', 'text', { required: true, section: 'Persönliches' }),
+      F('lastName', 'Nachname', 'text', { section: 'Persönliches' }),
+      F('gender', 'Geschlecht', 'select', { section: 'Persönliches', options: ['Female', 'Male', 'Diverse / not specified'], rerender: true }),
+      F('birthday', 'Geburtstag', 'date', { section: 'Persönliches', remind: 'yearly', remindLabel: 'Dein Geburtstag' }),
+      F('country', 'Wohnsitzland', 'country', { section: 'Persönliches', rerender: true }),
+      F('nationality', 'Nationalität', 'text', { section: 'Persönliches' }),
+      F('phone', 'Telefon', 'phone', { section: 'Persönliches' }),
+      F('email', 'E-Mail', 'email', { section: 'Persönliches' }),
 
-      F('addressLookup', '', 'custom', { section: 'Address', form: addressLookupForm }),
-      F('street', 'Street', 'text', { section: 'Address', hideInDetail: true }),
-      F('houseNo', 'House number', 'text', { section: 'Address', hideInDetail: true }),
-      F('zip', d => countryOf(d).zipLabel, 'text', { section: 'Address', hideInDetail: true, placeholder: d => countryOf(d).zipHint || '' }),
-      F('city', d => countryOf(d).cityLabel, 'text', { section: 'Address', hideInDetail: true }),
-      F('region', d => countryOf(d).regionLabel, 'select', { section: 'Address', hideInDetail: true, showIf: d => !!countryOf(d).regionLabel, options: d => countryOf(d).regions || null }),
-      F('addressVerified', '', 'hidden', { section: 'Address' }),
-      F('addressStatus', '', 'custom', { section: 'Address', form: addressStatusForm }),
+      F('addressLookup', '', 'custom', { section: 'Adresse', form: addressLookupForm }),
+      F('street', 'Strasse', 'text', { section: 'Adresse', hideInDetail: true }),
+      F('houseNo', 'Hausnummer', 'text', { section: 'Adresse', hideInDetail: true }),
+      F('zip', d => countryOf(d).zipLabel, 'text', { section: 'Adresse', hideInDetail: true, placeholder: d => countryOf(d).zipHint || '' }),
+      F('city', d => countryOf(d).cityLabel, 'text', { section: 'Adresse', hideInDetail: true }),
+      F('region', d => countryOf(d).regionLabel, 'select', { section: 'Adresse', hideInDetail: true, showIf: d => !!countryOf(d).regionLabel, options: d => countryOf(d).regions || null }),
+      F('addressVerified', '', 'hidden', { section: 'Adresse' }),
+      F('addressStatus', '', 'custom', { section: 'Adresse', form: addressStatusForm }),
 
-      F('ids', 'ID documents', 'group', {
-        section: 'ID documents', addLabel: 'Add ID document', rowLabel: r => `${r.type || 'ID document'} expires`,
-        fields: [F('type', 'Type', 'select', { options: d => countryOf(d).idTypes }), F('number', 'Number'), F('expiry', 'Expires', 'date', { remind: 'once' })],
+      F('ids', 'Ausweise', 'group', {
+        section: 'Ausweise & Dokumente', addLabel: 'Ausweis hinzufügen', rowLabel: r => `${r.type ? L(r.type) : 'Ausweis'} läuft ab`,
+        fields: [F('type', 'Art', 'select', { options: d => countryOf(d).idTypes }), F('number', 'Nummer'), F('expiry', 'Gültig bis', 'date', { remind: 'once' })],
       }),
 
-      F('height', 'Height', 'number', { section: 'Body & health', unit: 'cm' }),
-      F('weight', 'Weight', 'number', { section: 'Body & health', unit: 'kg' }),
-      F('bloodType', 'Blood type', 'select', { section: 'Body & health', options: ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', '0+', '0−'] }),
-      F('allergies', 'Allergies / intolerances', 'text', { section: 'Body & health' }),
+      F('height', 'Grösse', 'number', { section: 'Körper & Gesundheit', unit: 'cm' }),
+      F('weight', 'Gewicht', 'number', { section: 'Körper & Gesundheit', unit: 'kg' }),
+      F('bloodType', 'Blutgruppe', 'select', { section: 'Körper & Gesundheit', options: ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', '0+', '0−'] }),
+      F('allergies', 'Allergien / Unverträglichkeiten', 'text', { section: 'Körper & Gesundheit' }),
 
-      F('sizeTops', 'Tops / T-shirts', 'select', { section: 'Clothing sizes', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] }),
-      F('sizeDress', 'Dresses / blouses (EU)', 'text', { section: 'Clothing sizes', showIf: notMale, placeholder: 'e.g. 38' }),
-      F('sizeBra', 'Bra', 'text', { section: 'Clothing sizes', showIf: notMale, placeholder: 'e.g. 75B' }),
-      F('sizeCollar', 'Shirts (collar size)', 'text', { section: 'Clothing sizes', showIf: notFemale, placeholder: 'e.g. 41' }),
-      F('sizeSuit', 'Suits / jackets (EU)', 'text', { section: 'Clothing sizes', showIf: notFemale, placeholder: 'e.g. 50' }),
-      F('sizeTrousers', 'Trousers (EU)', 'text', { section: 'Clothing sizes', placeholder: d => d.gender === 'Female' ? 'e.g. 38' : 'e.g. 50' }),
-      F('sizeJeans', 'Jeans (W/L)', 'text', { section: 'Clothing sizes', placeholder: 'e.g. 32/34' }),
-      F('sizeShoes', 'Shoes (EU)', 'text', { section: 'Clothing sizes', placeholder: 'e.g. 42' }),
-      F('sizeBelt', 'Belt (cm)', 'text', { section: 'Clothing sizes', showIf: notFemale, placeholder: 'e.g. 95' }),
-      F('sizeRing', 'Ring size', 'text', { section: 'Clothing sizes', placeholder: 'e.g. 54' }),
+      F('sizeTops', 'Oberteile / T-Shirts', 'select', { section: 'Kleidergrössen', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'] }),
+      F('sizeDress', 'Kleider / Blusen (EU)', 'text', { section: 'Kleidergrössen', showIf: notMale, placeholder: 'z.B. 38' }),
+      F('sizeBra', 'BH', 'text', { section: 'Kleidergrössen', showIf: notMale, placeholder: 'z.B. 75B' }),
+      F('sizeCollar', 'Hemden (Kragenweite)', 'text', { section: 'Kleidergrössen', showIf: notFemale, placeholder: 'z.B. 41' }),
+      F('sizeSuit', 'Anzüge / Sakkos (EU)', 'text', { section: 'Kleidergrössen', showIf: notFemale, placeholder: 'z.B. 50' }),
+      F('sizeTrousers', 'Hosen (EU)', 'text', { section: 'Kleidergrössen', placeholder: d => d.gender === 'Female' ? 'z.B. 38' : 'z.B. 50' }),
+      F('sizeJeans', 'Jeans (W/L)', 'text', { section: 'Kleidergrössen', placeholder: 'z.B. 32/34' }),
+      F('sizeShoes', 'Schuhe (EU)', 'text', { section: 'Kleidergrössen', placeholder: 'z.B. 42' }),
+      F('sizeBelt', 'Gürtel (cm)', 'text', { section: 'Kleidergrössen', showIf: notFemale, placeholder: 'z.B. 95' }),
+      F('sizeRing', 'Ringgrösse', 'text', { section: 'Kleidergrössen', placeholder: 'z.B. 54' }),
 
-      F('income', 'Net income', 'money', { section: 'Monthly budget', hideInDetail: true }),
-      ...BUDGET.map(([k, l]) => F(k, l, 'money', { section: 'Monthly budget', hideInDetail: true })),
+      F('income', 'Nettoeinkommen', 'money', { section: 'Monatsbudget', hideInDetail: true }),
+      ...BUDGET.map(([k, l]) => F(k, l, 'money', { section: 'Monatsbudget', hideInDetail: true })),
 
-      F('recurring', '', 'custom', { section: 'Recurring charges', form: () => `<p class="sec-note" style="margin:0">Recurring charges (phone, internet, insurance, Netflix, Claude…) are stored in <b>Contracts & finances</b>, so you enter each one only once. After saving, use the quick-add buttons on this page.</p>`, detail: recurringDetail }),
-      F('insurance', '', 'custom', { section: 'Insurance check', form: () => `<p class="sec-note" style="margin:0">The insurance check uses your country and your insurance contracts. Nothing to fill in here.</p>`, detail: insuranceDetail }),
+      F('recurring', '', 'custom', { section: 'Wiederkehrende Kosten', form: () => `<p class="sec-note" style="margin:0">Wiederkehrende Kosten (Handy, Internet, Versicherungen, Netflix, Claude…) werden unter <b>Verträge & Finanzen</b> gespeichert. So erfasst du jede nur einmal. Nach dem Speichern kannst du sie über die Schnellwahl-Knöpfe auf dieser Seite hinzufügen.</p>`, detail: recurringDetail }),
+      F('insurance', '', 'custom', { section: 'Versicherungs-Check', form: () => `<p class="sec-note" style="margin:0">Der Versicherungs-Check nutzt dein Land und deine Versicherungsverträge. Hier gibt es nichts auszufüllen.</p>`, detail: insuranceDetail }),
 
-      F('emergency', 'Emergency contact', 'link', { section: 'Emergency & notes', to: ['contacts'] }),
-      F('notes', 'Notes', 'textarea', { section: 'Emergency & notes' }),
+      F('emergency', 'Notfallkontakt', 'link', { section: 'Notfall & Notizen', to: ['contacts'] }),
+      F('notes', 'Notizen', 'textarea', { section: 'Notfall & Notizen' }),
     ],
     sectionExtra: {
-      'Personal': e => e.data.birthday ? `<p class="small muted" style="margin:8px 0 0">Age: ${ageOf(e.data.birthday)}</p>` : '',
-      'Address': addressDetail,
-      'Body & health': e => { const { height: hh, weight: w } = e.data; return hh && w ? `<p class="small muted" style="margin:8px 0 0">BMI: ${(w / (hh / 100) ** 2).toFixed(1)}</p>` : ''; },
-      'Monthly budget': budgetDetail,
+      'Persönliches': e => e.data.birthday && !noYear(e.data.birthday) ? `<p class="small muted" style="margin:8px 0 0">Alter: ${ageOf(e.data.birthday)}</p>` : '',
+      'Adresse': addressDetail,
+      'Körper & Gesundheit': e => { const { height: hh, weight: w } = e.data; return hh && w ? `<p class="small muted" style="margin:8px 0 0">BMI: ${(w / (hh / 100) ** 2).toFixed(1)}</p>` : ''; },
+      'Monatsbudget': budgetDetail,
     },
   },
   {
-    id: 'health', name: 'Health', icon: '🩺', color: '#e0525e',
-    description: 'Appointments, medications, vaccinations, doctors and conditions.',
+    id: 'health', name: 'Gesundheit', icon: '🩺', color: '#e0525e',
+    description: 'Termine, Medikamente, Impfungen, Ärzte und Erkrankungen.',
     titleField: 'title', filterField: 'type', defaultSort: 'date:date',
     fields: [
-      F('type', 'Type', 'select', { options: ['Appointment', 'Medication', 'Vaccination', 'Check-up', 'Condition', 'Note'], required: true }),
-      F('title', 'Title', 'text', { required: true, placeholder: 'e.g. Dentist check-up, Ibuprofen, Tetanus' }),
-      F('date', 'Date', 'date', { remind: 'once', futureOnly: true, remindIf: d => d.type === 'Appointment' || d.type === 'Check-up', remindNote: d => d.type }),
-      F('nextDue', 'Next due / follow-up', 'date', { remind: 'once' }),
-      F('doctor', 'Doctor / contact', 'link', { to: ['contacts'] }),
-      F('dosage', 'Dosage', 'text', { placeholder: 'For medications, e.g. 400 mg, 2× daily' }),
+      F('type', 'Art', 'select', { options: ['Appointment', 'Medication', 'Vaccination', 'Check-up', 'Condition', 'Note'], required: true }),
+      F('title', 'Titel', 'text', { required: true, placeholder: 'z.B. Zahnarzt-Kontrolle, Ibuprofen, Tetanus' }),
+      F('date', 'Datum', 'date', { remind: 'once', futureOnly: true, remindIf: d => d.type === 'Appointment' || d.type === 'Check-up', remindNote: d => L(d.type) }),
+      F('nextDue', 'Nächste Fälligkeit / Nachkontrolle', 'date', { remind: 'once' }),
+      F('doctor', 'Arzt / Kontakt', 'link', { to: ['contacts'] }),
+      F('dosage', 'Dosierung', 'text', { placeholder: 'Bei Medikamenten, z.B. 400 mg, 2× täglich' }),
       F('status', 'Status', 'select', { options: ['Active', 'Ongoing', 'Done'] }),
-      F('notes', 'Notes', 'textarea'),
+      F('notes', 'Notizen', 'textarea'),
     ],
     inactive: d => d.status === 'Done',
-    subtitle: d => [d.type, d.date && fmtDate(d.date), d.dosage, d.status],
+    subtitle: d => [L(d.type), d.date && fmtDate(d.date), d.dosage, d.status && L(d.status)],
     summary: list => {
       const meds = list.filter(e => e.data.type === 'Medication' && e.data.status !== 'Done').length;
       const t = todayISO();
       const next = list.filter(e => e.data.type === 'Appointment' && e.data.date >= t).length;
-      return [{ l: 'Active medications', v: meds }, { l: 'Upcoming appointments', v: next }];
+      return [{ l: 'Aktive Medikamente', v: meds }, { l: 'Kommende Termine', v: next }];
     },
   },
   {
-    id: 'contracts', name: 'Contracts & finances', icon: '📄', color: '#1a9b6c',
-    description: 'Insurance, subscriptions and other recurring charges with costs and deadlines.',
+    id: 'contracts', name: 'Verträge & Finanzen', icon: '📄', color: '#1a9b6c',
+    description: 'Versicherungen, Abos und andere wiederkehrende Kosten mit Fristen.',
     titleField: 'title', filterField: 'category',
     fields: [
-      F('title', 'Name', 'text', { required: true, placeholder: 'e.g. Health insurance, Netflix, Mobile plan' }),
-      F('category', 'Category', 'select', { rerender: true, options: ['Insurance', 'Phone & Internet', 'Streaming & Media', 'AI & Software', 'Subscription', 'Housing', 'Utilities', 'Bank & Credit', 'Leasing', 'Other'] }),
-      F('insuranceType', 'Insurance type', 'select', { rerender: true, showIf: d => d.category === 'Insurance', options: () => myCountry().insurance.map(i => ({ value: i.key, label: i.name })) }),
-      F('chFranchise', 'Deductible (franchise, CHF)', 'select', { showIf: d => d.insuranceType === 'ch_health_basic', options: ['300', '500', '1000', '1500', '2000', '2500'] }),
-      F('chModel', 'Insurance model', 'select', { showIf: d => d.insuranceType === 'ch_health_basic', options: ['Standard (free choice of doctor)', 'Family doctor (Hausarzt)', 'HMO', 'Telmed'] }),
+      F('title', 'Bezeichnung', 'text', { required: true, placeholder: 'z.B. Krankenkasse, Netflix, Handy-Abo' }),
+      F('category', 'Kategorie', 'select', { rerender: true, options: ['Insurance', 'Phone & Internet', 'Streaming & Media', 'AI & Software', 'Subscription', 'Housing', 'Utilities', 'Bank & Credit', 'Leasing', 'Other'] }),
+      F('insuranceType', 'Versicherungsart', 'select', { rerender: true, showIf: d => d.category === 'Insurance', options: () => myCountry().insurance.map(i => ({ value: i.key, label: i.name })) }),
+      F('chFranchise', 'Franchise (CHF)', 'select', { showIf: d => d.insuranceType === 'ch_health_basic', options: ['300', '500', '1000', '1500', '2000', '2500'] }),
+      F('chModel', 'Versicherungsmodell', 'select', { showIf: d => d.insuranceType === 'ch_health_basic', options: ['Standard (free choice of doctor)', 'Family doctor (Hausarzt)', 'HMO', 'Telmed'] }),
       F('deSystem', 'System', 'select', { showIf: d => d.insuranceType === 'de_health', options: ['Statutory (GKV)', 'Private (PKV)'] }),
-      F('provider', 'Provider', 'text', { suggest: providerSuggestions }),
-      F('number', 'Customer / policy number'),
-      F('cost', 'Cost', 'money'),
-      F('billing', 'Billing', 'select', { options: ['Monthly', 'Quarterly', 'Yearly', 'One-time'], default: 'Monthly' }),
+      F('provider', 'Anbieter', 'text', { suggest: providerSuggestions }),
+      F('number', 'Kunden- / Policennummer'),
+      F('cost', 'Kosten', 'money'),
+      F('billing', 'Zahlungsweise', 'select', { options: ['Monthly', 'Quarterly', 'Yearly', 'One-time'], default: 'Monthly' }),
       F('status', 'Status', 'select', { options: ['Active', 'Cancelled', 'Ended'], default: 'Active' }),
-      F('startDate', 'Start date', 'date'),
-      F('endDate', 'Ends / renews on', 'date', { remind: 'once' }),
-      F('cancelBy', 'Cancel by (notice deadline)', 'date', { remind: 'once' }),
-      F('contact', 'Contact person', 'link', { to: ['contacts'] }),
-      F('website', 'Website / login page', 'url'),
-      F('notes', 'Notes', 'textarea'),
+      F('startDate', 'Beginn', 'date'),
+      F('endDate', 'Endet / verlängert sich am', 'date', { remind: 'once' }),
+      F('cancelBy', 'Kündigen bis (Frist)', 'date', { remind: 'once' }),
+      F('contact', 'Ansprechperson', 'link', { to: ['contacts'] }),
+      F('website', 'Website / Login-Seite', 'url'),
+      F('notes', 'Notizen', 'textarea'),
     ],
     inactive: d => d.status === 'Cancelled' || d.status === 'Ended',
-    subtitle: d => [d.category, d.provider, d.cost !== '' && d.cost != null ? `${fmtMoney(d.cost)}${d.billing ? ' / ' + d.billing.toLowerCase() : ''}` : '', d.status !== 'Active' ? d.status : ''],
+    subtitle: d => [L(d.category), d.provider, d.cost !== '' && d.cost != null ? `${fmtMoney(d.cost)}${d.billing ? ' / ' + L(d.billing).toLowerCase() : ''}` : '', d.status && d.status !== 'Active' ? L(d.status) : ''],
     summary: list => {
       const active = list.filter(isActiveContract);
       const monthly = active.reduce((s, e) => s + monthlyCost(e.data), 0);
-      return [{ l: 'Monthly costs', v: fmtMoney(monthly) }, { l: 'Yearly costs', v: fmtMoney(monthly * 12) }, { l: 'Active contracts', v: active.length }];
+      return [{ l: 'Kosten pro Monat', v: fmtMoney(monthly) }, { l: 'Kosten pro Jahr', v: fmtMoney(monthly * 12) }, { l: 'Aktive Verträge', v: active.length }];
     },
   },
   {
-    id: 'contacts', name: 'Contacts', icon: '👥', color: '#d98a1c',
-    description: 'Family, friends, doctors and service providers.',
+    id: 'contacts', name: 'Kontakte', icon: '👥', color: '#d98a1c',
+    description: 'Familie, Freunde, Ärzte und Dienstleister.',
     titleField: 'name', filterField: 'relation',
     fields: [
       F('name', 'Name', 'text', { required: true }),
-      F('relation', 'Relation', 'select', { options: ['Family', 'Friend', 'Work', 'Doctor', 'Service', 'Other'] }),
-      F('company', 'Company / practice'),
-      F('phone', 'Phone', 'phone'),
-      F('email', 'Email', 'email'),
-      F('address', 'Address', 'textarea'),
-      F('birthday', 'Birthday', 'date', { remind: 'yearly' }),
-      F('notes', 'Notes', 'textarea', { placeholder: 'Gift ideas, how you met, kids’ names…' }),
+      F('relation', 'Beziehung', 'select', { options: ['Family', 'Friend', 'Work', 'Doctor', 'Service', 'Other'] }),
+      F('company', 'Firma / Praxis'),
+      F('phone', 'Telefon', 'phone'),
+      F('email', 'E-Mail', 'email'),
+      F('address', 'Adresse', 'textarea'),
+      F('birthday', 'Geburtstag', 'date', { remind: 'yearly' }),
+      F('notes', 'Notizen', 'textarea', { placeholder: 'Geschenkideen, wie ihr euch kennt, Namen der Kinder…' }),
     ],
-    subtitle: d => [d.relation, d.company, d.phone],
-    headerActions: () => `<button class="btn" data-act="vcf-import" title="Import a .vcf file exported from the iPhone Contacts app">📇 Import from iPhone</button>`,
+    subtitle: d => [L(d.relation), d.company, d.phone],
+    headerActions: () => `<button class="btn" data-act="vcf-import" title="Eine .vcf-Datei aus der iPhone-App Kontakte importieren">📇 Vom iPhone importieren</button>`,
   },
   {
-    id: 'documents', name: 'Documents & mail', icon: '📥', color: '#0f8fb3',
-    description: 'Saved emails, letters, invoices, receipts and certificates.',
+    id: 'documents', name: 'Dokumente & Post', icon: '📥', color: '#0f8fb3',
+    description: 'Gespeicherte E-Mails, Briefe, Rechnungen, Quittungen und Zertifikate.',
     titleField: 'title', filterField: 'kind', defaultSort: 'date:date',
     fields: [
-      F('title', 'Title / subject', 'text', { required: true }),
-      F('kind', 'Kind', 'select', { options: ['Email', 'Letter', 'Invoice', 'Receipt', 'Contract document', 'Certificate', 'Other'], default: 'Other' }),
-      F('from', 'From / sender'),
-      F('date', 'Date', 'date'),
+      F('title', 'Titel / Betreff', 'text', { required: true }),
+      F('kind', 'Art', 'select', { options: ['Email', 'Letter', 'Invoice', 'Receipt', 'Contract document', 'Certificate', 'Other'], default: 'Other' }),
+      F('from', 'Von / Absender'),
+      F('date', 'Datum', 'date'),
       F('status', 'Status', 'select', { options: ['Open', 'Done'], default: 'Open' }),
-      F('dueDate', 'Due / deadline', 'date', { remind: 'once' }),
-      F('amount', 'Amount', 'money'),
-      F('body', 'Content', 'textarea'),
-      F('notes', 'Notes', 'textarea'),
+      F('dueDate', 'Fällig / Frist', 'date', { remind: 'once' }),
+      F('amount', 'Betrag', 'money'),
+      F('body', 'Inhalt', 'textarea'),
+      F('notes', 'Notizen', 'textarea'),
     ],
     inactive: d => d.status === 'Done',
-    subtitle: d => [d.kind, d.from, d.date && fmtDate(d.date), d.amount !== '' && d.amount != null ? fmtMoney(d.amount) : '', d.status === 'Done' ? 'Done' : ''],
-    headerActions: () => `<a class="btn" href="#/mail">✉️ Import from email</a>`,
+    subtitle: d => [L(d.kind), d.from, d.date && fmtDate(d.date), d.amount !== '' && d.amount != null ? fmtMoney(d.amount) : '', d.status === 'Done' ? L('Done') : ''],
+    headerActions: () => `<a class="btn" href="#/mail">✉️ Aus E-Mail importieren</a>`,
   },
   {
-    id: 'goals', name: 'Goals', icon: '🎯', color: '#8a5cf0',
-    description: 'What you want to achieve, with progress and next steps.',
+    id: 'goals', name: 'Ziele', icon: '🎯', color: '#8a5cf0',
+    description: 'Was du erreichen willst, mit Fortschritt und nächsten Schritten.',
     titleField: 'title', filterField: 'status', progressField: 'progress',
     fields: [
-      F('title', 'Goal', 'text', { required: true }),
-      F('area', 'Area', 'select', { options: ['Health', 'Career', 'Finance', 'Learning', 'Relationships', 'Personal', 'Travel'] }),
+      F('title', 'Ziel', 'text', { required: true }),
+      F('area', 'Bereich', 'select', { options: ['Health', 'Career', 'Finance', 'Learning', 'Relationships', 'Personal', 'Travel'] }),
       F('status', 'Status', 'select', { options: ['Idea', 'Active', 'Paused', 'Done'], default: 'Active' }),
-      F('progress', 'Progress', 'progress'),
-      F('targetDate', 'Target date', 'date', { remind: 'once' }),
-      F('why', 'Why it matters', 'textarea'),
-      F('nextStep', 'Next step'),
-      F('ideas', 'Related ideas', 'link', { to: ['ideas'] }),
-      F('notes', 'Notes', 'textarea'),
+      F('progress', 'Fortschritt', 'progress'),
+      F('targetDate', 'Zieldatum', 'date', { remind: 'once' }),
+      F('why', 'Warum es mir wichtig ist', 'textarea'),
+      F('nextStep', 'Nächster Schritt'),
+      F('ideas', 'Zugehörige Ideen', 'link', { to: ['ideas'] }),
+      F('notes', 'Notizen', 'textarea'),
     ],
     inactive: d => d.status === 'Done',
-    subtitle: d => [d.area, d.status, d.targetDate && 'by ' + fmtDate(d.targetDate)],
+    subtitle: d => [L(d.area), d.status && L(d.status), d.targetDate && 'bis ' + fmtDate(d.targetDate)],
     summary: list => {
       const active = list.filter(e => e.data.status === 'Active');
       const avg = active.length ? Math.round(active.reduce((s, e) => s + (Number(e.data.progress) || 0), 0) / active.length) : 0;
-      return [{ l: 'Active goals', v: active.length }, { l: 'Average progress', v: avg + '%' }, { l: 'Done', v: list.filter(e => e.data.status === 'Done').length }];
+      return [{ l: 'Aktive Ziele', v: active.length }, { l: 'Ø Fortschritt', v: avg + '%' }, { l: 'Erreicht', v: list.filter(e => e.data.status === 'Done').length }];
     },
   },
   {
-    id: 'ideas', name: 'Ideas', icon: '💡', color: '#c9a200',
-    description: 'Your idea inbox for projects, gifts, trips and things to buy.',
+    id: 'ideas', name: 'Ideen', icon: '💡', color: '#c9a200',
+    description: 'Deine Ideensammlung für Projekte, Geschenke, Reisen und Anschaffungen.',
     titleField: 'title', filterField: 'status',
     fields: [
-      F('title', 'Idea', 'text', { required: true }),
-      F('category', 'Category', 'select', { options: ['Project', 'Business', 'Travel', 'Gift', 'Purchase', 'Learning', 'Other'] }),
+      F('title', 'Idee', 'text', { required: true }),
+      F('category', 'Kategorie', 'select', { options: ['Project', 'Business', 'Travel', 'Gift', 'Purchase', 'Learning', 'Other'] }),
       F('status', 'Status', 'select', { options: ['New', 'Considering', 'Doing', 'Done', 'Dropped'], default: 'New' }),
-      F('priority', 'Priority', 'rating'),
-      F('description', 'Description', 'textarea'),
-      F('goal', 'Supports goal', 'link', { to: ['goals'] }),
+      F('priority', 'Priorität', 'rating'),
+      F('description', 'Beschreibung', 'textarea'),
+      F('goal', 'Unterstützt Ziel', 'link', { to: ['goals'] }),
     ],
-    subtitle: d => [d.category, d.status, d.priority ? '★'.repeat(d.priority) : ''],
+    subtitle: d => [L(d.category), d.status && L(d.status), d.priority ? '★'.repeat(d.priority) : ''],
   },
 ];
 const TOPIC = Object.fromEntries(TOPICS.map(t => [t.id, t]));
 
 /* ===================================================================== */
-/* Storage (IndexedDB, stays on this computer)                            */
+/* Speicher (IndexedDB im Browser dieses Geräts)                          */
 /* ===================================================================== */
-let db = null; // null = storage blocked, data is kept in memory only
+let db = null; // null = Speicher blockiert, Daten nur im Arbeitsspeicher
 const mem = { entries: new Map(), files: new Map(), meta: new Map() };
 const keyOf = (name, v) => name === 'meta' ? v.key : v.id;
 const state = { entries: [], meta: {} };
@@ -623,7 +669,7 @@ const dbPut = async (name, v) => db ? req(store(name, 'readwrite').put(v)) : voi
 const dbDel = async (name, k) => db ? req(store(name, 'readwrite').delete(k)) : void mem[name].delete(k);
 const dbClear = async name => db ? req(store(name, 'readwrite').clear()) : mem[name].clear();
 const filesFor = async entryId => db ? req(store('files').index('entryId').getAll(entryId)) : [...mem.files.values()].filter(f => f.entryId === entryId);
-/* settings that sync between devices; meta keys starting with "_" stay on this device only */
+/* Einstellungen, die zwischen Geräten synchronisiert werden; Schlüssel mit "_" bleiben nur auf diesem Gerät */
 const SYNCED_META = ['name', 'currency', 'requests'];
 async function setMeta(key, value) {
   state.meta[key] = value;
@@ -636,7 +682,7 @@ async function setMeta(key, value) {
 }
 const clean = ({ _hay, _hayAt, ...e }) => e;
 async function saveEntry(e) { e.updated = new Date().toISOString(); e._hay = null; await dbPut('entries', clean(e)); scheduleSync(); }
-/* remember deletions so other devices delete the same entries/files when syncing */
+/* Löschungen merken, damit andere Geräte beim Synchronisieren dasselbe löschen */
 async function tombstone(kind, ids) {
   if (!ids.length) return;
   const key = kind === 'file' ? 'deletedFiles' : 'deleted';
@@ -647,22 +693,22 @@ async function tombstone(kind, ids) {
 }
 
 /* ===================================================================== */
-/* Helpers                                                                */
+/* Hilfsfunktionen                                                        */
 /* ===================================================================== */
 const $ = s => document.querySelector(s);
 const main = $('#main');
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+const slug = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-');
 const isoOf = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const todayISO = () => isoOf(new Date());
-const noYear = s => +String(s).slice(0, 4) < 1800; // e.g. iPhone birthdays without year are stored as 1604
+const noYear = s => +String(s).slice(0, 4) < 1800; // iPhone speichert Geburtstage ohne Jahr als 1604
 function timeAgo(iso) {
   const s = (Date.now() - new Date(iso)) / 1000;
-  if (s < 60) return 'just now';
-  if (s < 3600) return Math.floor(s / 60) + ' min ago';
-  if (s < 86400) return Math.floor(s / 3600) + ' h ago';
-  return fmtDate(iso.slice(0, 10));
+  if (s < 60) return 'gerade eben';
+  if (s < 3600) return 'vor ' + Math.floor(s / 60) + ' Min.';
+  if (s < 86400) return 'vor ' + Math.floor(s / 3600) + ' Std.';
+  return 'am ' + fmtDate(iso.slice(0, 10));
 }
 const isoUTC = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
 const daysBetween = (a, b) => Math.round((isoUTC(b) - isoUTC(a)) / 86400000);
@@ -670,13 +716,13 @@ function fmtDate(s, opts = { day: 'numeric', month: 'short', year: 'numeric' }) 
   if (!s) return '';
   const [y, m, d] = s.split('-').map(Number);
   if (noYear(s)) { opts = { ...opts }; delete opts.year; delete opts.weekday; }
-  return new Date(noYear(s) ? 2000 : y, m - 1, d).toLocaleDateString(undefined, opts);
+  return new Date(noYear(s) ? 2000 : y, m - 1, d).toLocaleDateString(LOCALE, opts);
 }
 function relDays(n) {
-  if (n === 0) return 'today';
-  if (n === 1) return 'tomorrow';
-  if (n === -1) return 'yesterday';
-  return n > 0 ? `in ${n} days` : `${-n} days ago`;
+  if (n === 0) return 'heute';
+  if (n === 1) return 'morgen';
+  if (n === -1) return 'gestern';
+  return n > 0 ? `in ${n} Tagen` : `vor ${-n} Tagen`;
 }
 function ageOf(bday) {
   const t = todayISO(); let a = +t.slice(0, 4) - +bday.slice(0, 4);
@@ -686,7 +732,7 @@ function ageOf(bday) {
 const currency = () => state.meta.currency || myCountry().currency || '';
 function fmtMoney(v) {
   const n = Number(v) || 0;
-  const s = n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const s = n.toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return currency() ? `${currency()} ${s}` : s;
 }
 const fmtSize = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
@@ -697,9 +743,9 @@ function monthlyCost(d) {
 const isActiveContract = e => (e.data.status || 'Active') === 'Active';
 function title(e) {
   const t = TOPIC[e.topic];
-  if (!t) return '(unknown)';
+  if (!t) return '(unbekannt)';
   if (t.single) return [e.data.firstName, e.data.lastName].filter(Boolean).join(' ') || t.name;
-  return e.data[t.titleField] || '(untitled)';
+  return e.data[t.titleField] || '(ohne Titel)';
 }
 const byId = id => state.entries.find(e => e.id === id);
 const entriesOf = topicId => state.entries.filter(e => e.topic === topicId);
@@ -708,19 +754,19 @@ const lbl = (f, d) => typeof f.label === 'function' ? f.label(d) || '' : f.label
 const visible = (f, d) => !f.showIf || f.showIf(d);
 const optionsOf = (f, d) => (typeof f.options === 'function' ? f.options(d) : f.options) || null;
 const optVal = o => typeof o === 'object' ? o.value : o;
-const optLabel = o => typeof o === 'object' ? o.label : o;
+const optLabel = o => typeof o === 'object' ? o.label : L(o);
 function toast(msg) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
   clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2600);
 }
-/* in-page confirmation dialog (browser pop-ups are blocked in some windows) */
-function ask(message, okLabel = 'Yes, continue') {
+/* eigener Bestätigungsdialog (Browser-Popups sind in manchen Fenstern blockiert) */
+function ask(message, okLabel = 'Ja, weiter') {
   return new Promise(resolve => {
     const wrap = document.createElement('div');
     wrap.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.4);display:grid;place-items:center;padding:16px';
     wrap.innerHTML = `<div class="card" role="dialog" aria-modal="true" style="max-width:440px;width:100%">
       <p style="margin:0 0 16px">${h(message)}</p>
-      <div class="actions" style="justify-content:flex-end"><button class="btn" data-a="no">Cancel</button><button class="btn primary" data-a="yes">${h(okLabel)}</button></div></div>`;
+      <div class="actions" style="justify-content:flex-end"><button class="btn" data-a="no">Abbrechen</button><button class="btn primary" data-a="yes">${h(okLabel)}</button></div></div>`;
     const done = v => { wrap.remove(); document.removeEventListener('keydown', onKey, true); resolve(v); };
     const onKey = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); done(false); } };
     wrap.addEventListener('click', ev => { const b = ev.target.closest('[data-a]'); if (b) done(b.dataset.a === 'yes'); else if (ev.target === wrap) done(false); });
@@ -749,7 +795,7 @@ function providerSuggestions(d) {
   if (d.category === 'Phone & Internet') return c.telcos || [];
   return SUGGEST[d.category] || [];
 }
-/* group fields by section, keeping definition order */
+/* Felder nach Abschnitten gruppieren, Reihenfolge der Definition beibehalten */
 function sectionsOf(t, d) {
   const out = [];
   for (const f of t.fields) {
@@ -763,14 +809,14 @@ function sectionsOf(t, d) {
 }
 
 /* ===================================================================== */
-/* Reminders                                                              */
+/* Erinnerungen                                                           */
 /* ===================================================================== */
 function reminders(ahead = 60, past = 30) {
   const out = [], t = todayISO(), thisYear = +t.slice(0, 4);
   for (const e of state.entries) {
     const tp = TOPIC[e.topic]; if (!tp) continue;
     const inactive = tp.inactive?.(e.data);
-    // collect date values, including those inside repeatable groups
+    // Datumswerte sammeln, auch aus wiederholbaren Gruppen
     const items = [];
     for (const f of tp.fields) {
       if (f.type === 'group') {
@@ -785,7 +831,7 @@ function reminders(ahead = 60, past = 30) {
         const diff = daysBetween(t, occ);
         if (diff <= ahead) {
           const age = y < 1800 ? 0 : occY - y;
-          out.push({ e, tp, date: occ, diff, label: f.remindLabel || `${title(e)}'s birthday`, note: age > 0 ? `${tp.single ? 'You turn' : 'Turns'} ${age}` : '' });
+          out.push({ e, tp, date: occ, diff, label: f.remindLabel || `Geburtstag von ${title(e)}`, note: age > 0 ? `${tp.single ? 'Du wirst' : 'Wird'} ${age}` : '' });
         }
       } else {
         if (inactive) continue;
@@ -799,7 +845,7 @@ function reminders(ahead = 60, past = 30) {
 }
 
 /* ===================================================================== */
-/* Sidebar                                                                */
+/* Seitenleiste                                                           */
 /* ===================================================================== */
 function renderSidebar(active) {
   const link = (href, icon, label, key, count = '') =>
@@ -807,22 +853,22 @@ function renderSidebar(active) {
   $('#sidebar').innerHTML = `
     <div class="brand"><span class="ticon" style="--c:#3a68f0">📘</span> Lifebook</div>
     <nav class="nav">
-      ${link('#/', '🏠', 'Dashboard', 'dashboard')}
-      ${link('#/upcoming', '⏰', 'Coming up', 'upcoming', reminders(60, 30).length || '')}
-      <div class="nav-label">Topics</div>
+      ${link('#/', '🏠', 'Übersicht', 'dashboard')}
+      ${link('#/upcoming', '⏰', 'Demnächst', 'upcoming', reminders(60, 30).length || '')}
+      <div class="nav-label">Themen</div>
       ${TOPICS.map(t => link(`#/topic/${t.id}`, t.icon, t.name, 'topic:' + t.id, t.single ? '' : entriesOf(t.id).length)).join('')}
-      <div class="nav-label">Organise</div>
+      <div class="nav-label">Organisieren</div>
       ${link('#/tags', '🏷️', 'Tags', 'tags', allTags().length || '')}
-      ${link('#/mail', '✉️', 'Email', 'mail')}
-      ${link('#/sync', '📱', 'Phone & sync', 'sync')}
-      ${link('#/request', '✨', 'Plan a new topic', 'request')}
-      ${link('#/backup', '💾', 'Backup & settings', 'backup')}
+      ${link('#/mail', '✉️', 'E-Mail', 'mail')}
+      ${link('#/sync', '📱', 'Handy & Sync', 'sync')}
+      ${link('#/request', '✨', 'Neues Thema planen', 'request')}
+      ${link('#/backup', '💾', 'Backup & Einstellungen', 'backup')}
     </nav>`;
   renderSyncChip();
 }
 
 /* ===================================================================== */
-/* Router                                                                 */
+/* Navigation                                                             */
 /* ===================================================================== */
 async function route() {
   freeURLs();
@@ -852,17 +898,17 @@ async function route() {
     else if (a === 'mail') { active = 'mail'; renderSidebar(active); b ? await viewMessage(b) : await viewMail(q); }
     else if (a === 'sync') { active = 'sync'; viewSync(); }
     else if (a === 'backup') { active = 'backup'; viewBackup(); }
-    else { main.innerHTML = `<div class="card empty"><div class="big">🤷</div><p>This page doesn't exist (anymore).</p><a class="btn" href="#/">Back to dashboard</a></div>`; }
+    else { main.innerHTML = `<div class="card empty"><div class="big">🤷</div><p>Diese Seite gibt es nicht (mehr).</p><a class="btn" href="#/">Zur Übersicht</a></div>`; }
   } catch (err) {
     console.error(err);
-    main.innerHTML = `<div class="card"><h2>Something went wrong</h2><pre class="out">${h(err.stack || err)}</pre></div>`;
+    main.innerHTML = `<div class="card"><h2>Da ist etwas schiefgelaufen</h2><pre class="out">${h(err.stack || err)}</pre></div>`;
   }
   renderSidebar(active);
   if (a !== 'search' && !q.get('sec')) window.scrollTo(0, 0);
 }
 
 /* ===================================================================== */
-/* Views                                                                  */
+/* Ansichten                                                              */
 /* ===================================================================== */
 function topicIcon(t, cls = '') { return `<span class="ticon ${cls}" style="--c:${t.color}">${t.icon}</span>`; }
 
@@ -873,38 +919,38 @@ function upRow(r) {
     <div class="datebox"><div class="d">${+d}</div><div class="mo">${fmtDate(r.date, { month: 'short' })}</div></div>
     ${topicIcon(r.tp)}
     <div style="min-width:0"><div><b>${h(r.label)}</b></div><div class="small muted">${h(r.note)}${r.note ? ' · ' : ''}${fmtDate(r.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
-    <div class="rel">${r.diff < 0 ? 'overdue · ' : ''}${relDays(r.diff)}</div></a>`;
+    <div class="rel">${r.diff < 0 ? 'überfällig · ' : ''}${relDays(r.diff)}</div></a>`;
 }
 
 function backupNotice() {
-  if (!state.entries.length) return '';
+  if (!state.entries.length || syncConfigured()) return '';
   const last = state.meta.lastBackup;
   const days = last ? daysBetween(last.slice(0, 10), todayISO()) : null;
   if (days !== null && days < 14) return '';
-  return `<div class="notice"><span>💾 ${last ? `Your last backup was ${days} days ago.` : 'You haven’t made a backup yet.'} Your data only lives in this browser, so export it now and then.</span><a class="btn sm" href="#/backup">Back up now</a></div>`;
+  return `<div class="notice"><span>💾 ${last ? `Dein letztes Backup ist ${days} Tage alt.` : 'Du hast noch kein Backup gemacht.'} Deine Daten liegen nur in diesem Browser. Sichere sie ab und zu, oder richte die Synchronisierung ein.</span><a class="btn sm" href="#/backup">Jetzt sichern</a></div>`;
 }
 
 function viewDashboard() {
   const hr = new Date().getHours();
-  const greet = hr < 11 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  const greet = hr < 11 ? 'Guten Morgen' : hr < 18 ? 'Guten Tag' : 'Guten Abend';
   const name = state.meta.name || profileEntry()?.data.firstName || '';
   const ups = reminders(60, 30);
   const recent = [...state.entries].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, 6);
 
   if (!state.entries.length) {
     main.innerHTML = `
-      <div class="page-head"><div><h1>${greet}${name ? ', ' + h(name) : ''} 👋</h1><p class="muted">Welcome to Lifebook, your personal place for everything about you.</p></div></div>
+      <div class="page-head"><div><h1>${greet}${name ? ', ' + h(name) : ''} 👋</h1><p class="muted">Willkommen bei Lifebook, deinem persönlichen Ort für alles rund um dich.</p></div></div>
       <div class="card stack">
-        <h2>Getting started</h2>
+        <h2>Erste Schritte</h2>
         <ol style="margin:0;padding-left:20px;line-height:1.9">
-          <li><a href="#/new/profile">Fill in <b>About me</b></a>. Start with your country: it sets up the address format, ID types and insurance check.</li>
-          <li>Add your <a href="#/new/contracts">recurring charges & insurances</a> to see your fixed costs and insurance coverage.</li>
-          <li>Add <a href="#/new/contacts">contacts</a> with birthdays. They'll show up under <b>Coming up</b>.</li>
-          <li>Want a topic that's missing? Use <a href="#/request">Plan a new topic</a>.</li>
-          <li>Make a <a href="#/backup">backup</a> regularly. Your data stays on this computer.</li>
+          <li><a href="#/new/profile"><b>Über mich</b> ausfüllen</a>. Beginne mit deinem Land: Es bestimmt Adressformat, Ausweistypen und Versicherungs-Check.</li>
+          <li>Erfasse deine <a href="#/new/contracts">wiederkehrenden Kosten & Versicherungen</a>, um Fixkosten und Versicherungsschutz zu sehen.</li>
+          <li>Füge <a href="#/new/contacts">Kontakte</a> mit Geburtstagen hinzu. Sie erscheinen dann unter <b>Demnächst</b>.</li>
+          <li>Fehlt dir ein Thema? Nutze <a href="#/request">Neues Thema planen</a>.</li>
+          <li>Richte unter <a href="#/sync">Handy & Sync</a> die Synchronisierung ein, oder mache regelmässig ein <a href="#/backup">Backup</a>.</li>
         </ol>
       </div>
-      <h2 style="margin-top:24px">Your topics</h2>
+      <h2 style="margin-top:24px">Deine Themen</h2>
       <div class="grid tiles">${TOPICS.map(topicTile).join('')}</div>`;
     return;
   }
@@ -915,14 +961,14 @@ function viewDashboard() {
       ${backupNotice()}
       ${insuranceWarning()}
       <div class="card">
-        <div class="sec-head"><h2>⏰ Coming up</h2><a class="small" href="#/upcoming">See all</a></div>
-        ${ups.length ? ups.slice(0, 6).map(upRow).join('') : '<p class="muted small" style="margin:0">Nothing due in the next 60 days. Dates like birthdays, expiry dates and notice deadlines will show up here.</p>'}
+        <div class="sec-head"><h2>⏰ Demnächst</h2><a class="small" href="#/upcoming">Alle anzeigen</a></div>
+        ${ups.length ? ups.slice(0, 6).map(upRow).join('') : '<p class="muted small" style="margin:0">In den nächsten 60 Tagen steht nichts an. Geburtstage, Ablaufdaten und Kündigungsfristen erscheinen hier.</p>'}
       </div>
       <div class="grid tiles">${TOPICS.map(topicTile).join('')}</div>
       ${TOPICS.filter(t => t.summary && entriesOf(t.id).length).map(t => `
         <div class="card"><h3>${t.icon} ${h(t.name)}</h3><div class="stats">${t.summary(entriesOf(t.id)).map(s => `<div><div class="v">${h(s.v)}</div><div class="l">${h(s.l)}</div></div>`).join('')}</div></div>`).join('')}
       <div class="card">
-        <h2>🕘 Recently updated</h2>
+        <h2>🕘 Zuletzt geändert</h2>
         <div class="linklist">${recent.map(e => `<a href="#/entry/${e.id}">${topicIcon(TOPIC[e.topic])}<span>${h(title(e))}</span><span class="rel">${fmtDate(e.updated.slice(0, 10))}</span></a>`).join('')}</div>
       </div>
     </div>`;
@@ -930,21 +976,21 @@ function viewDashboard() {
 
 function topicTile(t) {
   const n = entriesOf(t.id).length;
-  const sub = t.single ? (n ? 'Filled in' : 'Not filled in yet') : `${n} ${n === 1 ? 'entry' : 'entries'}`;
+  const sub = t.single ? (n ? 'Ausgefüllt' : 'Noch nicht ausgefüllt') : `${n} ${n === 1 ? 'Eintrag' : 'Einträge'}`;
   return `<a class="card tile" href="#/topic/${t.id}">${topicIcon(t, 'lg')}<div><div style="font-weight:600">${h(t.name)}</div><div class="stat">${sub}</div></div></a>`;
 }
 
 function viewUpcoming() {
   const ups = reminders(365, 365);
   const groups = [
-    ['Overdue / past', ups.filter(r => r.diff < 0)],
-    ['Next 30 days', ups.filter(r => r.diff >= 0 && r.diff <= 30)],
-    ['Later this year', ups.filter(r => r.diff > 30)],
+    ['Überfällig / vergangen', ups.filter(r => r.diff < 0)],
+    ['Nächste 30 Tage', ups.filter(r => r.diff >= 0 && r.diff <= 30)],
+    ['Später im Jahr', ups.filter(r => r.diff > 30)],
   ].filter(g => g[1].length);
   main.innerHTML = `
-    <div class="page-head"><div><h1>⏰ Coming up</h1><p class="muted">Birthdays, expiry dates, deadlines and follow-ups from all topics.</p></div></div>
+    <div class="page-head"><div><h1>⏰ Demnächst</h1><p class="muted">Geburtstage, Ablaufdaten, Fristen und Nachkontrollen aus allen Themen.</p></div></div>
     ${groups.length ? `<div class="stack">${groups.map(([g, list]) => `<div class="card"><h2>${g}</h2>${list.map(upRow).join('')}</div>`).join('')}</div>`
-      : `<div class="card empty"><div class="big">📅</div><p>No dates yet. Add birthdays, contract deadlines or document expiry dates and they'll appear here.</p></div>`}`;
+      : `<div class="card empty"><div class="big">📅</div><p>Noch keine Daten. Erfasse Geburtstage, Kündigungsfristen oder Ablaufdaten von Ausweisen, dann erscheinen sie hier.</p></div>`}`;
 }
 
 function entryCard(e) {
@@ -957,7 +1003,7 @@ function entryCard(e) {
     ${sub ? `<div class="m">${h(sub)}</div>` : ''}
     ${prog !== null ? `<div class="progress" title="${prog}%"><div style="width:${prog}%"></div></div>` : ''}
     ${(e.tags || []).length ? `<div class="chips" style="margin-top:8px">${e.tags.map(x => `<span class="chip tag">#${h(x)}</span>`).join('')}</div>` : ''}
-    <div class="foot">${e.fileCount ? `<span>📎 ${e.fileCount}</span>` : ''}${nLinks ? `<span>🔗 ${nLinks}</span>` : ''}<span style="margin-left:auto">Updated ${fmtDate(e.updated.slice(0, 10))}</span></div>
+    <div class="foot">${e.fileCount ? `<span>📎 ${e.fileCount}</span>` : ''}${nLinks ? `<span>🔗 ${nLinks}</span>` : ''}<span style="margin-left:auto">Geändert ${fmtDate(e.updated.slice(0, 10))}</span></div>
   </a>`;
 }
 
@@ -967,7 +1013,7 @@ async function viewTopic(t, q) {
     if (e) return viewEntry(e);
     main.innerHTML = `
       <div class="page-head"><div style="display:flex;gap:14px;align-items:center">${topicIcon(t, 'lg')}<div><h1>${h(t.name)}</h1><p class="muted" style="margin:0">${h(t.description)}</p></div></div></div>
-      <div class="card empty"><div class="big">${t.icon}</div><p>Nothing here yet.</p><a class="btn primary" href="#/new/${t.id}">✏️ Fill it in</a></div>`;
+      <div class="card empty"><div class="big">${t.icon}</div><p>Hier ist noch nichts.</p><a class="btn primary" href="#/new/${t.id}">✏️ Jetzt ausfüllen</a></div>`;
     return;
   }
   const all = entriesOf(t.id);
@@ -986,21 +1032,21 @@ async function viewTopic(t, q) {
   main.innerHTML = `
     <div class="page-head">
       <div style="display:flex;gap:14px;align-items:center">${topicIcon(t, 'lg')}<div><h1>${h(t.name)}</h1><p class="muted" style="margin:0">${h(t.description)}</p></div></div>
-      <div class="actions">${t.headerActions?.() || ''}<a class="btn primary" href="#/new/${t.id}${filter ? '?' + encodeURIComponent(t.filterField) + '=' + encodeURIComponent(filter) : ''}">＋ New entry</a></div>
+      <div class="actions">${t.headerActions?.() || ''}<a class="btn primary" href="#/new/${t.id}${filter ? '?' + encodeURIComponent(t.filterField) + '=' + encodeURIComponent(filter) : ''}">＋ Neuer Eintrag</a></div>
     </div>
     ${t.summary && all.length ? `<div class="card" style="margin-bottom:16px"><div class="stats">${t.summary(all).map(s => `<div><div class="v">${h(s.v)}</div><div class="l">${h(s.l)}</div></div>`).join('')}</div></div>` : ''}
     ${all.length ? `
     <div class="toolbar">
-      ${filterF ? `<div class="seg">${['', ...optionsOf(filterF, {})].map(o => `<button data-act="go" data-href="${h(qs({ f: optVal(o) }))}" class="${optVal(o) === filter ? 'on' : ''}">${o ? h(optLabel(o)) : 'All'}</button>`).join('')}</div>` : ''}
-      <input type="search" id="tfilter" placeholder="Filter ${h(t.name.toLowerCase())}…" style="margin-left:auto">
+      ${filterF ? `<div class="seg">${['', ...optionsOf(filterF, {})].map(o => `<button data-act="go" data-href="${h(qs({ f: optVal(o) }))}" class="${optVal(o) === filter ? 'on' : ''}">${o ? h(optLabel(o)) : 'Alle'}</button>`).join('')}</div>` : ''}
+      <input type="search" id="tfilter" placeholder="${h(t.name)} filtern…" style="margin-left:auto">
       <select id="tsort">
-        <option value="updated">Recently updated</option>
+        <option value="updated">Zuletzt geändert</option>
         <option value="title">Name A–Z</option>
-        ${dateFields.map(f => `<option value="date:${f.key}">${h(lbl(f, {}))} (newest)</option>`).join('')}
+        ${dateFields.map(f => `<option value="date:${f.key}">${h(lbl(f, {}))} (neueste)</option>`).join('')}
       </select>
     </div>` : ''}
     ${list.length ? `<div class="grid cards">${list.map(entryCard).join('')}</div>` :
-      `<div class="card empty"><div class="big">${t.icon}</div><p>${all.length ? 'No entries match this filter.' : 'No entries yet.'}</p>${all.length ? '' : `<a class="btn primary" href="#/new/${t.id}">Add the first one</a>`}</div>`}`;
+      `<div class="card empty"><div class="big">${t.icon}</div><p>${all.length ? 'Keine Einträge für diesen Filter.' : 'Noch keine Einträge.'}</p>${all.length ? '' : `<a class="btn primary" href="#/new/${t.id}">Ersten Eintrag erstellen</a>`}</div>`}`;
 
   const sel = $('#tsort'); if (sel) { sel.value = sort; sel.onchange = () => go(qs({ sort: sel.value })); }
   const tf = $('#tfilter');
@@ -1016,12 +1062,12 @@ function displayValue(f, v, d = {}) {
     case 'date': return noYear(v) ? h(fmtDate(v)) : `${h(fmtDate(v))} <span class="muted small">(${relDays(daysBetween(todayISO(), v))})</span>`;
     case 'money': return h(fmtMoney(v));
     case 'number': return h(v) + (f.unit ? ' ' + h(f.unit) : '');
-    case 'checkbox': return 'Yes';
+    case 'checkbox': return 'Ja';
     case 'phone': return `<a href="tel:${h(v)}">${h(v)}</a>`;
     case 'email': return `<a href="mailto:${h(v)}">${h(v)}</a>`;
     case 'url': { const u = /^https?:\/\//i.test(v) ? v : 'https://' + v; return `<a href="${h(u)}" target="_blank" rel="noopener">${h(v)} ↗</a>`; }
     case 'country': { const c = COUNTRIES[v]; return c ? `${c.flag} ${h(c.name)}` : h(v); }
-    case 'select': { const o = (optionsOf(f, d) || []).find(o => optVal(o) === v); return `<span class="chip">${h(o ? optLabel(o) : v)}</span>`; }
+    case 'select': { const o = (optionsOf(f, d) || []).find(o => optVal(o) === v); return `<span class="chip">${h(o ? optLabel(o) : L(v))}</span>`; }
     case 'rating': return `<span title="${v}/5">${'★'.repeat(v)}<span class="muted">${'★'.repeat(5 - v)}</span></span>`;
     case 'progress': return `<div style="display:flex;gap:10px;align-items:center"><div class="progress" style="flex:1;max-width:260px"><div style="width:${v}%"></div></div><b>${v}%</b></div>`;
     case 'link': return `<div class="chips">${v.map(byId).filter(Boolean).map(x => `<a class="chip" href="#/entry/${x.id}">${TOPIC[x.topic].icon} ${h(title(x))}</a>`).join('')}</div>`;
@@ -1043,8 +1089,8 @@ async function viewEntry(e) {
     const body = (rows.length ? `<div class="dl">${rows.map(([f, v]) => `<div class="k">${h(lbl(f, d))}</div><div class="v">${v}</div>`).join('')}</div>` : '') + extra + custom;
     const editable = s.fields.some(f => !['custom', 'hidden'].includes(f.type));
     return `<div class="card">
-      ${s.name ? `<div class="sec-head"><h2>${h(s.name)}</h2>${editable ? `<a class="btn sm" href="#/edit/${e.id}?sec=${slug(s.name)}">✏️ Edit</a>` : ''}</div>` : ''}
-      ${body || `<p class="muted small" style="margin:0">Nothing filled in yet. <a href="#/edit/${e.id}?sec=${slug(s.name)}">Add it</a></p>`}
+      ${s.name ? `<div class="sec-head"><h2>${h(s.name)}</h2>${editable ? `<a class="btn sm" href="#/edit/${e.id}?sec=${slug(s.name)}">✏️ Bearbeiten</a>` : ''}</div>` : ''}
+      ${body || `<p class="muted small" style="margin:0">Noch nichts ausgefüllt. <a href="#/edit/${e.id}?sec=${slug(s.name)}">Jetzt ergänzen</a></p>`}
     </div>`;
   });
   main.innerHTML = `
@@ -1052,28 +1098,28 @@ async function viewEntry(e) {
       <div style="display:flex;gap:14px;align-items:center">${topicIcon(t, 'lg')}<div>
         <div class="small muted"><a href="#/topic/${t.id}">${h(t.name)}</a></div>
         <h1>${h(title(e))}</h1></div></div>
-      <div class="actions"><a class="btn primary" href="#/edit/${e.id}">✏️ Edit${t.single ? ' everything' : ''}</a><button class="btn danger" data-act="delete" data-id="${e.id}">Delete</button></div>
+      <div class="actions"><a class="btn primary" href="#/edit/${e.id}">✏️ ${t.single ? 'Alles bearbeiten' : 'Bearbeiten'}</a><button class="btn danger" data-act="delete" data-id="${e.id}">Löschen</button></div>
     </div>
     <div class="stack">
       ${sections.join('')}
       ${(e.tags || []).length ? `<div class="chips">${e.tags.map(x => `<a class="chip tag" href="#/tag/${encodeURIComponent(x)}">#${h(x)}</a>`).join('')}</div>` : ''}
-      <div class="card" id="files"><h2>📎 Attachments</h2><p class="muted small">Loading…</p></div>
-      ${related.length || back.length ? `<div class="card"><h2>🔗 Connections</h2>
-        ${related.length ? `<h3 class="muted small">Related</h3><div class="linklist">${related.map(x => `<a href="#/entry/${x.id}">${topicIcon(TOPIC[x.topic])}${h(title(x))}<span class="rel">${h(TOPIC[x.topic].name)}</span></a>`).join('')}</div>` : ''}
-        ${back.length ? `<h3 class="muted small" style="margin-top:10px">Mentioned in</h3><div class="linklist">${back.map(x => `<a href="#/entry/${x.id}">${topicIcon(TOPIC[x.topic])}${h(title(x))}<span class="rel">${h(TOPIC[x.topic].name)}</span></a>`).join('')}</div>` : ''}
+      <div class="card" id="files"><h2>📎 Anhänge</h2><p class="muted small">Wird geladen…</p></div>
+      ${related.length || back.length ? `<div class="card"><h2>🔗 Verknüpfungen</h2>
+        ${related.length ? `<h3 class="muted small">Verknüpft mit</h3><div class="linklist">${related.map(x => `<a href="#/entry/${x.id}">${topicIcon(TOPIC[x.topic])}${h(title(x))}<span class="rel">${h(TOPIC[x.topic].name)}</span></a>`).join('')}</div>` : ''}
+        ${back.length ? `<h3 class="muted small" style="margin-top:10px">Erwähnt in</h3><div class="linklist">${back.map(x => `<a href="#/entry/${x.id}">${topicIcon(TOPIC[x.topic])}${h(title(x))}<span class="rel">${h(TOPIC[x.topic].name)}</span></a>`).join('')}</div>` : ''}
       </div>` : ''}
-      <p class="small muted">Created ${fmtDate(e.created.slice(0, 10))} · Last updated ${new Date(e.updated).toLocaleString()}</p>
+      <p class="small muted">Erstellt am ${fmtDate(e.created.slice(0, 10))} · Zuletzt geändert ${new Date(e.updated).toLocaleString(LOCALE)}</p>
     </div>`;
   const files = await filesFor(e.id);
   const box = $('#files'); if (!box) return;
-  box.innerHTML = `<h2>📎 Attachments</h2>` + (files.length ? `<div class="thumbs">${files.map(f => {
+  box.innerHTML = `<h2>📎 Anhänge</h2>` + (files.length ? `<div class="thumbs">${files.map(f => {
     const u = objURL(f.blob);
     const isImg = f.type.startsWith('image/');
     return `<a class="thumb" href="${u}" target="_blank" download="${h(f.name)}" title="${h(f.name)}">${isImg ? `<img src="${u}" alt="">` : `<div class="img">${f.type === 'application/pdf' ? '📕' : '📄'}</div>`}<div class="nm">${h(f.name)}</div></a>`;
-  }).join('')}</div>` : `<p class="muted small" style="margin:0">No files. <a href="#/edit/${e.id}">Edit</a> to attach scans, photos or PDFs (e.g. a scan of your ID).</p>`);
+  }).join('')}</div>` : `<p class="muted small" style="margin:0">Keine Dateien. Über <a href="#/edit/${e.id}">Bearbeiten</a> kannst du Scans, Fotos oder PDFs anhängen (z.B. einen Scan deines Ausweises).</p>`);
 }
 
-/* ---------- About me: special sections ---------- */
+/* ---------- Über mich: besondere Abschnitte ---------- */
 function formatAddress(d) {
   const c = countryOf(d);
   const line1 = c.numberFirst ? [d.houseNo, d.street] : [d.street, d.houseNo];
@@ -1081,13 +1127,13 @@ function formatAddress(d) {
   const l2 = d.country === 'US' ? `${d.city || ''}${d.region ? ', ' + d.region : ''} ${d.zip || ''}`.trim()
     : d.country === 'GB' ? [d.city, (d.zip || '').toUpperCase()].filter(Boolean).join('\n')
     : [d.zip, d.city].filter(Boolean).join(' ') + (d.region && d.country !== 'US' ? ` ${d.region}` : '');
-  return [l1, l2, c.name !== 'Other country' && (l1 || l2) ? c.name : ''].filter(Boolean).join('\n');
+  return [l1, l2, d.country && d.country !== 'OTHER' && (l1 || l2) ? c.name : ''].filter(Boolean).join('\n');
 }
 function verifiedText(v) {
   if (!v) return '';
   const [src, date] = v.split('|');
-  return src === 'swisstopo' ? `✅ Verified in the official Swiss building address register (swisstopo), ${fmtDate(date)}`
-    : `✅ Found on OpenStreetMap, ${fmtDate(date)}`;
+  return src === 'swisstopo' ? `✅ Im amtlichen Gebäudeadressverzeichnis der Schweiz (swisstopo) bestätigt, ${fmtDate(date)}`
+    : `✅ Auf OpenStreetMap gefunden, ${fmtDate(date)}`;
 }
 function addressDetail(e) {
   const d = e.data, txt = formatAddress(d);
@@ -1095,9 +1141,9 @@ function addressDetail(e) {
   const zipBad = d.zip && countryOf(d).zip && !countryOf(d).zip.test(d.zip);
   return `<div class="addr">${h(txt)}</div>
     <div class="actions small" style="margin-top:8px">
-      ${d.addressVerified ? `<span class="ok">${verifiedText(d.addressVerified)}</span>` : `<span class="warn">⚠️ Not verified yet. Use "Check address" when editing.</span>`}
-      ${zipBad ? `<span class="bad">⚠️ ${h(countryOf(d).zipLabel)} should be ${h(countryOf(d).zipHint)}</span>` : ''}
-      <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(txt.replace(/\n/g, ', '))}" target="_blank" rel="noopener">Show on map ↗</a>
+      ${d.addressVerified ? `<span class="ok">${verifiedText(d.addressVerified)}</span>` : `<span class="warn">⚠️ Noch nicht geprüft. Nutze beim Bearbeiten „Adresse prüfen".</span>`}
+      ${zipBad ? `<span class="bad">⚠️ ${h(countryOf(d).zipLabel)} sollte ${h(countryOf(d).zipHint)} haben</span>` : ''}
+      <a href="https://www.openstreetmap.org/search?query=${encodeURIComponent(txt.replace(/\n/g, ', '))}" target="_blank" rel="noopener">Auf Karte zeigen ↗</a>
     </div>`;
 }
 function budgetDetail(e) {
@@ -1111,37 +1157,37 @@ function budgetDetail(e) {
   const pct = v => income ? Math.round(v / income * 100) : 0;
   const row = (label, v) => `<tr><td>${label}</td><td style="width:35%">${income ? `<div class="bar"><div style="width:${Math.min(100, pct(v))}%"></div></div>` : ''}</td><td class="num muted small">${income ? pct(v) + '%' : ''}</td><td class="num">${h(fmtMoney(v))}</td></tr>`;
   return `<table class="tbl">
-    ${income ? `<tr><td><b>💼 Net income</b></td><td></td><td></td><td class="num"><b>${h(fmtMoney(income))}</b></td></tr>` : ''}
+    ${income ? `<tr><td><b>💼 Nettoeinkommen</b></td><td></td><td></td><td class="num"><b>${h(fmtMoney(income))}</b></td></tr>` : ''}
     ${rows.map(([l, v]) => row(h(l), v)).join('')}
-    ${row(`🔁 Fixed costs <a class="small" href="#sec-recurring-charges">(recurring charges)</a>`, fixed)}
-    <tr class="total"><td>Total planned</td><td></td><td class="num small">${income ? pct(total) + '%' : ''}</td><td class="num">${h(fmtMoney(total))}</td></tr>
-    ${income ? `<tr><td><b>${left >= 0 ? '✅ Left over' : '⚠️ Over budget'}</b></td><td></td><td></td><td class="num ${left >= 0 ? 'ok' : 'bad'}"><b>${h(fmtMoney(left))}</b></td></tr>` : ''}
+    ${row(`🔁 Fixkosten <a class="small" href="#sec-recurring-charges">(wiederkehrende Kosten)</a>`, fixed)}
+    <tr class="total"><td>Total geplant</td><td></td><td class="num small">${income ? pct(total) + '%' : ''}</td><td class="num">${h(fmtMoney(total))}</td></tr>
+    ${income ? `<tr><td><b>${left >= 0 ? '✅ Bleibt übrig' : '⚠️ Über Budget'}</b></td><td></td><td></td><td class="num ${left >= 0 ? 'ok' : 'bad'}"><b>${h(fmtMoney(left))}</b></td></tr>` : ''}
   </table>`;
 }
 const QUICK_ADD = [
-  ['📱 Phone & Internet', { category: 'Phone & Internet', billing: 'Monthly' }],
-  ['🛡️ Insurance', { category: 'Insurance' }],
+  ['📱 Telefon & Internet', { category: 'Phone & Internet', billing: 'Monthly' }],
+  ['🛡️ Versicherung', { category: 'Insurance' }],
   ['🎬 Netflix', { title: 'Netflix', category: 'Streaming & Media', provider: 'Netflix', billing: 'Monthly' }],
   ['🎵 Spotify', { title: 'Spotify', category: 'Streaming & Media', provider: 'Spotify', billing: 'Monthly' }],
   ['🤖 Claude', { title: 'Claude', category: 'AI & Software', provider: 'Anthropic (Claude)', billing: 'Monthly' }],
-  ['➕ Other', {}],
+  ['➕ Anderes', {}],
 ];
 const newContractLink = params => '#/new/contracts?' + new URLSearchParams({ ...params, ret: '#/topic/profile' }).toString();
 function recurringDetail() {
-  const list = entriesOf('contracts').filter(isActiveContract).sort((a, b) => (a.data.category || '').localeCompare(b.data.category || '') || monthlyCost(b.data) - monthlyCost(a.data));
+  const list = entriesOf('contracts').filter(isActiveContract).sort((a, b) => L(a.data.category || 'Other').localeCompare(L(b.data.category || 'Other')) || monthlyCost(b.data) - monthlyCost(a.data));
   const total = list.reduce((s, x) => s + monthlyCost(x.data), 0);
   const cats = [...new Set(list.map(x => x.data.category || 'Other'))];
   return `<div id="sec-recurring-charges">
     ${list.length ? `<table class="tbl">${cats.map(c => {
       const items = list.filter(x => (x.data.category || 'Other') === c);
-      return `<tr><td colspan="3" class="muted small" style="padding-top:12px"><b>${h(c)}</b></td></tr>` + items.map(x => `<tr>
+      return `<tr><td colspan="3" class="muted small" style="padding-top:12px"><b>${h(L(c))}</b></td></tr>` + items.map(x => `<tr>
         <td><a href="#/entry/${x.id}">${h(title(x))}</a>${x.data.provider ? ` <span class="muted small">· ${h(x.data.provider)}</span>` : ''}</td>
-        <td class="num muted small">${x.data.cost !== '' && x.data.cost != null ? h(fmtMoney(x.data.cost)) + ' / ' + h((x.data.billing || 'Monthly').toLowerCase()) : 'no cost entered'}</td>
-        <td class="num">${h(fmtMoney(monthlyCost(x.data)))}<span class="muted small"> /mo</span></td></tr>`).join('');
+        <td class="num muted small">${x.data.cost !== '' && x.data.cost != null ? h(fmtMoney(x.data.cost)) + ' / ' + h(L(x.data.billing || 'Monthly').toLowerCase()) : 'keine Kosten erfasst'}</td>
+        <td class="num">${h(fmtMoney(monthlyCost(x.data)))}<span class="muted small"> /Mt.</span></td></tr>`).join('');
     }).join('')}
-    <tr class="total"><td>Total per month</td><td class="num muted small">${h(fmtMoney(total * 12))} / year</td><td class="num">${h(fmtMoney(total))}</td></tr></table>`
-    : '<p class="muted small" style="margin:0 0 10px">No recurring charges yet.</p>'}
-    <div class="actions" style="margin-top:12px"><span class="small muted">Quick add:</span>${QUICK_ADD.map(([l, p]) => `<a class="btn sm" href="${h(newContractLink(p))}">${l}</a>`).join('')}</div>
+    <tr class="total"><td>Total pro Monat</td><td class="num muted small">${h(fmtMoney(total * 12))} / Jahr</td><td class="num">${h(fmtMoney(total))}</td></tr></table>`
+    : '<p class="muted small" style="margin:0 0 10px">Noch keine wiederkehrenden Kosten.</p>'}
+    <div class="actions" style="margin-top:12px"><span class="small muted">Schnell hinzufügen:</span>${QUICK_ADD.map(([l, p]) => `<a class="btn sm" href="${h(newContractLink(p))}">${l}</a>`).join('')}</div>
   </div>`;
 }
 function insuranceStatus() {
@@ -1161,47 +1207,47 @@ function insuranceWarning() {
   const s = insuranceStatus(); if (!s || !s.prof.data.country) return '';
   const missing = s.rows.filter(r => r.st === 'mandatory');
   if (!missing.length) return '';
-  return `<div class="notice" style="background:var(--danger-soft);color:var(--danger)"><span>🛡️ Mandatory insurance not recorded yet: ${missing.map(r => h(r.i.name)).join(', ')}</span><a class="btn sm" href="#/topic/profile">Open insurance check</a></div>`;
+  return `<div class="notice" style="background:var(--danger-soft);color:var(--danger)"><span>🛡️ Obligatorische Versicherung noch nicht erfasst: ${missing.map(r => h(r.i.name)).join(', ')}</span><a class="btn sm" href="#/topic/profile">Versicherungs-Check öffnen</a></div>`;
 }
 function insuranceDetail() {
   const s = insuranceStatus(); if (!s) return '';
   const { c, rows, unassigned, prof } = s;
-  if (!prof.data.country) return `<p class="muted small" style="margin:0">Choose your <a href="#/edit/${prof.id}?sec=personal">country of residence</a> to see which insurances are mandatory or common there.</p>`;
+  if (!prof.data.country) return `<p class="muted small" style="margin:0">Wähle dein <a href="#/edit/${prof.id}?sec=${slug('Persönliches')}">Wohnsitzland</a>, um zu sehen, welche Versicherungen dort obligatorisch oder üblich sind.</p>`;
   const icon = { covered: '✅', skip: '➖', mandatory: '❗', conditional: '⚠️', recommended: '💡', optional: '○' };
-  const levelText = { mandatory: 'Mandatory', conditional: 'Mandatory if applicable', recommended: 'Commonly recommended', optional: 'Optional' };
+  const levelText = { mandatory: 'Obligatorisch', conditional: 'Obligatorisch, falls zutreffend', recommended: 'Oft empfohlen', optional: 'Freiwillig' };
   const covered = rows.filter(r => r.st === 'covered').length;
   return `
-    <details class="infobox" style="margin-bottom:12px"><summary style="cursor:pointer"><b>${c.flag} How insurance works in ${h(c.name)}</b></summary>
-      <div style="margin-top:8px">${c.system || `<p>${h(c.insurance[0].note || '')}</p><p class="muted">No detailed guide for this country yet. Ask Claude to add one.</p>`}</div></details>
-    <p class="small muted" style="margin:0 0 6px">${covered} of ${rows.length} covered. Insurances are matched by the <i>Insurance type</i> of your insurance contracts. This is general orientation, not advice. Rules change, so check official sources.</p>
+    <details class="infobox" style="margin-bottom:12px"><summary style="cursor:pointer"><b>${c.flag} So funktionieren Versicherungen in ${h(c.name)}</b></summary>
+      <div style="margin-top:8px">${c.system || `<p>${h(c.insurance[0].note || '')}</p><p class="muted">Für dieses Land gibt es noch keine ausführliche Erklärung. Frag Claude, ob es eine ergänzen kann.</p>`}</div></details>
+    <p class="small muted" style="margin:0 0 6px">${covered} von ${rows.length} abgedeckt. Die Zuordnung erfolgt über die <i>Versicherungsart</i> deiner Versicherungsverträge. Das ist eine allgemeine Orientierung, keine Beratung. Regeln ändern sich; prüfe offizielle Quellen.</p>
     ${rows.map(({ i, has, st }) => `
       <div class="ins-row ${st === 'skip' ? 'skip' : ''}">
         <div class="st">${icon[st]}</div>
         <div class="body">
           <div><b>${h(i.name)}</b> <span class="chip ${i.level}">${levelText[i.level]}</span></div>
           ${i.note ? `<div class="small muted">${h(i.note)}</div>` : ''}
-          ${has.length ? `<div class="chips" style="margin-top:6px">${has.map(x => `<a class="chip" href="#/entry/${x.id}">${h(x.data.provider || title(x))}${x.data.cost ? ' · ' + h(fmtMoney(monthlyCost(x.data))) + '/mo' : ''}</a>`).join('')}</div>` : ''}
+          ${has.length ? `<div class="chips" style="margin-top:6px">${has.map(x => `<a class="chip" href="#/entry/${x.id}">${h(x.data.provider || title(x))}${x.data.cost ? ' · ' + h(fmtMoney(monthlyCost(x.data))) + '/Mt.' : ''}</a>`).join('')}</div>` : ''}
         </div>
         <div class="actions">
-          ${has.length ? '' : `<a class="btn sm" href="${h(newContractLink({ title: i.name, category: 'Insurance', insuranceType: i.key }))}">＋ Add</a>
-          <button class="btn sm" data-act="ins-skip" data-k="${i.key}">${st === 'skip' ? 'Undo' : 'Not needed'}</button>`}
+          ${has.length ? '' : `<a class="btn sm" href="${h(newContractLink({ title: i.name, category: 'Insurance', insuranceType: i.key }))}">＋ Erfassen</a>
+          <button class="btn sm" data-act="ins-skip" data-k="${i.key}">${st === 'skip' ? 'Rückgängig' : 'Nicht nötig'}</button>`}
         </div>
       </div>`).join('')}
-    ${unassigned.length ? `<p class="small muted" style="margin:12px 0 4px">Insurance contracts without a matching type:</p><div class="chips">${unassigned.map(x => `<a class="chip" href="#/edit/${x.id}">${h(title(x))} (set type)</a>`).join('')}</div>` : ''}`;
+    ${unassigned.length ? `<p class="small muted" style="margin:12px 0 4px">Versicherungsverträge ohne passende Versicherungsart:</p><div class="chips">${unassigned.map(x => `<a class="chip" href="#/edit/${x.id}">${h(title(x))} (Art festlegen)</a>`).join('')}</div>` : ''}`;
 }
 
-/* ---------- address lookup (only sends what you type into the search box) ---------- */
+/* ---------- Adresssuche (sendet nur, was du ins Suchfeld tippst) ---------- */
 function addressLookupForm(d) {
   const c = countryOf(d);
-  const src = c.lookup === 'swisstopo' ? 'the official Swiss building address register (swisstopo)' : 'OpenStreetMap (Photon)';
-  return `<span>🔎 Find your address <small>(autocomplete)</small></span>
-    <div class="addr-lookup"><input type="search" id="addrq" placeholder="Start typing, e.g. ${h(c.example)}" autocomplete="off"><div id="addrres" class="addr-res" hidden></div></div>
-    <div class="small muted" style="margin-top:4px">Suggestions come from ${src}. Only the text you type in this box is sent there.</div>`;
+  const src = c.lookup === 'swisstopo' ? 'dem amtlichen Gebäudeadressverzeichnis der Schweiz (swisstopo)' : 'OpenStreetMap (Photon)';
+  return `<span>🔎 Adresse suchen <small>(automatische Vervollständigung)</small></span>
+    <div class="addr-lookup"><input type="search" id="addrq" placeholder="Tippe los, z.B. ${h(c.example)}" autocomplete="off"><div id="addrres" class="addr-res" hidden></div></div>
+    <div class="small muted" style="margin-top:4px">Die Vorschläge kommen aus ${src}. Gesendet wird nur der Text, den du in dieses Feld tippst.</div>`;
 }
 function addressStatusForm(d) {
-  return `<div class="addr-status-row"><span id="addrstatus">${addrStatusHTML(d.addressVerified)}</span><button type="button" class="btn sm" data-act="addr-check">✓ Check address</button></div>`;
+  return `<div class="addr-status-row"><span id="addrstatus">${addrStatusHTML(d.addressVerified)}</span><button type="button" class="btn sm" data-act="addr-check">✓ Adresse prüfen</button></div>`;
 }
-const addrStatusHTML = v => v ? `<span class="ok">${verifiedText(v)}</span>` : `<span class="muted">Not verified</span>`;
+const addrStatusHTML = v => v ? `<span class="ok">${verifiedText(v)}</span>` : `<span class="muted">Nicht geprüft</span>`;
 const normAddr = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/str\.?(\s|$)/g, 'strasse$1').replace(/[^a-z0-9]/g, '');
 async function addressSearch(text, cc) {
   const c = COUNTRIES[cc] || COUNTRIES.OTHER;
@@ -1234,8 +1280,8 @@ async function addrInput(v) {
   clearTimeout(addrTimer);
   if (v.trim().length < 3) return showAddrResults([]);
   addrTimer = setTimeout(async () => {
-    try { const list = await addressSearch(v, curCountry()); showAddrResults(list, list.length ? '' : 'No matching address found.'); }
-    catch { showAddrResults([], 'Address lookup is not available right now (offline?). You can still type the address manually.'); }
+    try { const list = await addressSearch(v, curCountry()); showAddrResults(list, list.length ? '' : 'Keine passende Adresse gefunden.'); }
+    catch { showAddrResults([], 'Die Adresssuche ist gerade nicht erreichbar (offline?). Du kannst die Adresse auch von Hand eintippen.'); }
   }, 300);
 }
 function addrPick(a) {
@@ -1243,14 +1289,14 @@ function addrPick(a) {
   f.f_street.value = a.street; f.f_houseNo.value = a.houseNo; f.f_zip.value = a.zip; f.f_city.value = a.city;
   if (a.region && f.f_region && [...(f.f_region.options || [])].some(o => o.value === a.region)) f.f_region.value = a.region;
   f.f_addressVerified.value = a.street && a.houseNo ? `${a.source}|${todayISO()}` : '';
-  $('#addrstatus').innerHTML = addrStatusHTML(f.f_addressVerified.value) + (a.houseNo ? '' : ' <span class="warn">Please add your house number.</span>');
+  $('#addrstatus').innerHTML = addrStatusHTML(f.f_addressVerified.value) + (a.houseNo ? '' : ' <span class="warn">Bitte ergänze die Hausnummer.</span>');
   $('#addrq').value = ''; showAddrResults([]);
 }
 async function addrCheck() {
   const f = $('#entryform').elements;
   const a = { street: f.f_street.value.trim(), houseNo: f.f_houseNo.value.trim(), zip: f.f_zip.value.trim(), city: f.f_city.value.trim() };
-  if (!a.street || !a.city && !a.zip) return toast('Enter at least street and postal code or city first');
-  $('#addrstatus').innerHTML = '<span class="muted">Checking…</span>';
+  if (!a.street || !a.city && !a.zip) return toast('Gib zuerst mindestens Strasse und PLZ oder Ort ein');
+  $('#addrstatus').innerHTML = '<span class="muted">Wird geprüft…</span>';
   try {
     const list = await addressSearch(`${a.street} ${a.houseNo} ${a.zip} ${a.city}`, curCountry());
     const match = list.find(x => normAddr(x.street) === normAddr(a.street) && normAddr(x.houseNo) === normAddr(a.houseNo) && (!a.zip || x.zip === a.zip || !x.zip));
@@ -1260,14 +1306,14 @@ async function addrCheck() {
       $('#addrstatus').innerHTML = addrStatusHTML(f.f_addressVerified.value);
     } else {
       f.f_addressVerified.value = '';
-      $('#addrstatus').innerHTML = `<span class="bad">⚠️ This exact address wasn't found.</span> ${list.length ? 'Did you mean one of these?' : 'Check spelling and house number.'}`;
+      $('#addrstatus').innerHTML = `<span class="bad">⚠️ Diese Adresse wurde so nicht gefunden.</span> ${list.length ? 'Meintest du eine dieser Adressen?' : 'Prüfe Schreibweise und Hausnummer.'}`;
       showAddrResults(list);
       $('#addrq')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
-  } catch { $('#addrstatus').innerHTML = '<span class="warn">Address check is not available right now (offline?).</span>'; }
+  } catch { $('#addrstatus').innerHTML = '<span class="warn">Die Adressprüfung ist gerade nicht erreichbar (offline?).</span>'; }
 }
 
-/* ---------- form ---------- */
+/* ---------- Formular ---------- */
 let formFiles = { pending: [], removed: new Set(), existing: [] };
 let formCtx = null;
 
@@ -1275,9 +1321,9 @@ function linkBox(name, candidates, selected) {
   const sel = new Set(selected || []);
   const list = [...candidates].sort((a, b) => (sel.has(b.id) - sel.has(a.id)) || title(a).localeCompare(title(b)));
   return `<div class="linkbox" data-link="${name}">
-    ${list.length > 6 ? `<input type="search" class="lb-filter" placeholder="Filter…">` : ''}
+    ${list.length > 6 ? `<input type="search" class="lb-filter" placeholder="Filtern…">` : ''}
     <div class="lb-list">${list.length ? list.map(e => `<label class="lb-item"><input type="checkbox" name="${name}" value="${e.id}" ${sel.has(e.id) ? 'checked' : ''}><span>${TOPIC[e.topic].icon} ${h(title(e))}</span><small>${h(TOPIC[e.topic].name)}</small></label>`).join('')
-      : `<div class="small muted" style="padding:6px 11px">Nothing to link yet.</div>`}</div></div>`;
+      : `<div class="small muted" style="padding:6px 11px">Noch nichts zum Verknüpfen vorhanden.</div>`}</div></div>`;
 }
 
 function inputFor(f, v, d, n = 'f_' + f.key) {
@@ -1288,18 +1334,18 @@ function inputFor(f, v, d, n = 'f_' + f.key) {
   switch (f.type) {
     case 'textarea': return `<textarea name="${n}" rows="3"${ph}>${h(v)}</textarea>`;
     case 'number': return `<input type="number" step="any" name="${n}" value="${h(v)}"${ph}>`;
-    case 'money': return `<input type="number" step="0.01" name="${n}" value="${h(v)}" placeholder="0.00">`;
+    case 'money': return `<input type="number" step="0.01" inputmode="decimal" name="${n}" value="${h(v)}" placeholder="0.00">`;
     case 'date': return `<input type="date" name="${n}" value="${h(v)}">`;
     case 'phone': return `<input type="tel" name="${n}" value="${h(v)}"${ph}>`;
     case 'email': return `<input type="email" name="${n}" value="${h(v)}"${ph}>`;
     case 'url': return `<input type="text" inputmode="url" name="${n}" value="${h(v)}" placeholder="https://…">`;
-    case 'checkbox': return `<label class="check"><input type="checkbox" name="${n}" ${v ? 'checked' : ''}> Yes</label>`;
-    case 'country': return `<select name="${n}"${rr}><option value="">— choose —</option>${countryOptions.map(o => `<option value="${o.value}" ${o.value === v ? 'selected' : ''}>${h(o.label)}</option>`).join('')}</select>`;
+    case 'checkbox': return `<label class="check"><input type="checkbox" name="${n}" ${v ? 'checked' : ''}> Ja</label>`;
+    case 'country': return `<select name="${n}"${rr}><option value="">— wählen —</option>${countryOptions.map(o => `<option value="${o.value}" ${o.value === v ? 'selected' : ''}>${h(o.label)}</option>`).join('')}</select>`;
     case 'select': {
       const opts = optionsOf(f, d);
       if (!opts) return `<input type="text" name="${n}" value="${h(v)}"${ph}>`;
       const known = opts.some(o => optVal(o) === v);
-      return `<select name="${n}"${rr}><option value="">—</option>${opts.map(o => `<option value="${h(optVal(o))}" ${optVal(o) === v ? 'selected' : ''}>${h(optLabel(o))}</option>`).join('')}${v && !known ? `<option selected value="${h(v)}">${h(v)}</option>` : ''}</select>`;
+      return `<select name="${n}"${rr}><option value="">—</option>${opts.map(o => `<option value="${h(optVal(o))}" ${optVal(o) === v ? 'selected' : ''}>${h(optLabel(o))}</option>`).join('')}${v && !known ? `<option selected value="${h(v)}">${h(L(v))}</option>` : ''}</select>`;
     }
     case 'rating': return `<select name="${n}"><option value="">—</option>${[1, 2, 3, 4, 5].map(i => `<option value="${i}" ${+v === i ? 'selected' : ''}>${'★'.repeat(i)}${'☆'.repeat(5 - i)}</option>`).join('')}</select>`;
     case 'progress': return `<div class="rangewrap"><input type="range" min="0" max="100" step="5" name="${n}" value="${+v || 0}" oninput="this.nextElementSibling.textContent=this.value+'%'"><b>${+v || 0}%</b></div>`;
@@ -1308,8 +1354,8 @@ function inputFor(f, v, d, n = 'f_' + f.key) {
       const rows = Array.isArray(v) ? v : [];
       return `<div class="group" data-group="${f.key}">${rows.map((r, i) => `<div class="grow"><div class="grow-fields">${f.fields.map(sf =>
         `<label class="field"><span>${h(sf.label)}</span>${inputFor(sf, r[sf.key], d, `g_${f.key}_${i}_${sf.key}`)}</label>`).join('')}</div>
-        <button type="button" class="btn sm danger" data-act="grow-del" data-g="${f.key}" data-i="${i}" title="Remove">✕</button></div>`).join('')}
-        <button type="button" class="btn sm" data-act="grow-add" data-g="${f.key}">＋ ${h(f.addLabel || 'Add')}</button></div>`;
+        <button type="button" class="btn sm danger" data-act="grow-del" data-g="${f.key}" data-i="${i}" title="Entfernen">✕</button></div>`).join('')}
+        <button type="button" class="btn sm" data-act="grow-add" data-g="${f.key}">＋ ${h(f.addLabel || 'Hinzufügen')}</button></div>`;
     }
     default: {
       const sug = f.suggest?.(d) || [];
@@ -1319,7 +1365,7 @@ function inputFor(f, v, d, n = 'f_' + f.key) {
 }
 const parseVal = (f, v) => ['number', 'money', 'rating', 'progress'].includes(f.type) ? (v === '' ? '' : Number(v)) : v;
 
-/* read the visible inputs; fields that are currently hidden keep their previous value */
+/* sichtbare Felder lesen; gerade ausgeblendete Felder behalten ihren bisherigen Wert */
 function readForm(form, t, base) {
   const fd = new FormData(form);
   const d = { ...base };
@@ -1359,7 +1405,7 @@ function renderForm(extras) {
       if (f.type === 'hidden') { html += `<input type="hidden" name="f_${f.key}" value="${h(d[f.key])}">`; continue; }
       if (f.type === 'custom') { if (f.form) { flush(); html += `<div class="field">${f.form(d)}</div>`; } continue; }
       const tag = wide(f) ? 'div' : 'label';
-      const remind = f.remind ? ` <small>⏰ ${f.remind === 'yearly' ? 'yearly reminder' : 'reminder'}</small>` : '';
+      const remind = f.remind ? ` <small>⏰ ${f.remind === 'yearly' ? 'jährliche Erinnerung' : 'Erinnerung'}</small>` : '';
       const block = `<${tag} class="field"><span>${h(lbl(f, d))}${f.unit ? ` <small>(${h(f.unit)})</small>` : ''}${f.required ? ' *' : ''}${remind}</span>${inputFor(f, d[f.key], d)}</${tag}>`;
       if (wide(f)) { flush(); html += block; } else { buf.push(block); if (buf.length === 2) flush(); }
     }
@@ -1372,33 +1418,33 @@ function renderForm(extras) {
   main.innerHTML = `
     <div class="page-head"><div style="display:flex;gap:14px;align-items:center">${topicIcon(t, 'lg')}<div>
       <div class="small muted"><a href="#/topic/${t.id}">${h(t.name)}</a></div>
-      <h1>${!e ? (t.single ? 'Fill in ' + h(t.name) : 'New entry') : 'Edit ' + h(title(e))}</h1></div></div></div>
+      <h1>${!e ? (t.single ? h(t.name) + ' ausfüllen' : 'Neuer Eintrag') : h(title(e)) + ' bearbeiten'}</h1></div></div></div>
     <form id="entryform" class="card form" novalidate autocomplete="off">
       ${sectionHTML}
-      <section class="fsec" id="fsec-more"><h2>Tags, links & files</h2>
-      <label class="field"><span>Tags <small>separate with commas, e.g. important, 2026, family</small></span>
+      <section class="fsec" id="fsec-more"><h2>Tags, Verknüpfungen & Dateien</h2>
+      <label class="field"><span>Tags <small>mit Komma trennen, z.B. wichtig, 2026, familie</small></span>
         <input type="text" name="tags" value="${h(extras.tags)}" list="taglist" autocomplete="off">
         <datalist id="taglist">${tags.map(x => `<option value="${h(x)}">`).join('')}</datalist></label>
-      <div class="field"><span>Related entries <small>connect this with anything in other topics</small></span>
+      <div class="field"><span>Verknüpfte Einträge <small>mit beliebigen Einträgen aus anderen Themen verbinden</small></span>
         ${linkBox('related', state.entries.filter(x => x.id !== e?.id), extras.related)}</div>
-      <div class="field"><span>Attachments <small>photos, scans, PDFs (stored in this browser)</small></span>
+      <div class="field"><span>Anhänge <small>Fotos, Scans, PDFs</small></span>
         <div id="filelist"></div>
         <div class="actions" style="margin-top:6px">
-          <label class="btn sm">📎 Add files or photos<input type="file" id="fileinput" multiple hidden></label>
-          <label class="btn sm">📷 Take photo<input type="file" id="camerainput" accept="image/*" capture="environment" hidden></label>
+          <label class="btn sm">📎 Dateien oder Fotos hinzufügen<input type="file" id="fileinput" multiple hidden></label>
+          <label class="btn sm">📷 Foto aufnehmen<input type="file" id="camerainput" accept="image/*" capture="environment" hidden></label>
         </div>
-        <div class="small muted" style="margin-top:4px">Large photos are reduced automatically (max. 2400 px) to save space and sync faster.</div></div>
+        <div class="small muted" style="margin-top:4px">Grosse Fotos werden automatisch verkleinert (max. 2400 px). Das spart Platz und beschleunigt die Synchronisierung.</div></div>
       </section>
       <div class="sticky-actions actions">
-        <button class="btn primary" type="button" data-act="save">💾 Save</button>
-        <a class="btn" href="${h(cancel)}">Cancel</a>
+        <button class="btn primary" type="button" data-act="save">💾 Speichern</button>
+        <a class="btn" href="${h(cancel)}">Abbrechen</a>
       </div>
     </form>`;
   renderFileList();
   $('#entryform').onsubmit = ev => ev.preventDefault();
 }
 
-/* rebuild the form (e.g. after country/gender change) without losing typed values */
+/* Formular neu aufbauen (z.B. nach Land-/Geschlechtswechsel), ohne Eingaben zu verlieren */
 function rerenderForm(mutate) {
   const form = $('#entryform');
   formCtx.data = readForm(form, formCtx.t, formCtx.data);
@@ -1413,10 +1459,10 @@ function rerenderForm(mutate) {
 function renderFileList() {
   const el = $('#filelist'); if (!el) return;
   const rows = [
-    ...formFiles.existing.map(f => `<div class="file-row ${formFiles.removed.has(f.id) ? 'removed' : ''}">📎 ${h(f.name)} <span class="muted small">${fmtSize(f.size)}</span> <button type="button" class="link-btn" data-act="toggle-file" data-id="${f.id}">${formFiles.removed.has(f.id) ? 'Undo' : 'Remove'}</button></div>`),
-    ...formFiles.pending.map((f, i) => `<div class="file-row">🆕 ${h(f.name)} <span class="muted small">${fmtSize(f.size)}</span> <button type="button" class="link-btn" data-act="drop-pending" data-i="${i}">Remove</button></div>`),
+    ...formFiles.existing.map(f => `<div class="file-row ${formFiles.removed.has(f.id) ? 'removed' : ''}">📎 ${h(f.name)} <span class="muted small">${fmtSize(f.size)}</span> <button type="button" class="link-btn" data-act="toggle-file" data-id="${f.id}">${formFiles.removed.has(f.id) ? 'Rückgängig' : 'Entfernen'}</button></div>`),
+    ...formFiles.pending.map((f, i) => `<div class="file-row">🆕 ${h(f.name)} <span class="muted small">${fmtSize(f.size)}</span> <button type="button" class="link-btn" data-act="drop-pending" data-i="${i}">Entfernen</button></div>`),
   ];
-  el.innerHTML = rows.join('') || '<div class="muted small">No files attached.</div>';
+  el.innerHTML = rows.join('') || '<div class="muted small">Keine Dateien angehängt.</div>';
 }
 
 async function saveForm() {
@@ -1425,12 +1471,12 @@ async function saveForm() {
   const data = readForm(form, t, formCtx.data);
   for (const f of t.fields) {
     if (f.required && visible(f, data) && !data[f.key]) {
-      toast(`Please fill in "${lbl(f, data)}"`); form.elements['f_' + f.key]?.focus(); return;
+      toast(`Bitte „${lbl(f, data)}" ausfüllen`); form.elements['f_' + f.key]?.focus(); return;
     }
   }
   if (t.id === 'profile') {
     const c = countryOf(data);
-    if (data.zip && c.zip && !c.zip.test(data.zip) && !await ask(`The ${c.zipLabel.toLowerCase()} "${data.zip}" doesn't look valid for ${c.name} (expected ${c.zipHint}). Save anyway?`)) return;
+    if (data.zip && c.zip && !c.zip.test(data.zip) && !await ask(`Die ${c.zipLabel} „${data.zip}" sieht für ${c.name} ungültig aus (erwartet: ${c.zipHint}). Trotzdem speichern?`)) return;
     data.ids = (data.ids || []).filter(r => r.type || r.number || r.expiry);
   }
   const fd = new FormData(form);
@@ -1447,13 +1493,13 @@ async function saveForm() {
 
   await saveEntry(entry);
   if (!existing) state.entries.push(entry);
-  toast('Saved ✓');
+  toast('Gespeichert ✓');
   go(formCtx.ret || '#/entry/' + entry.id);
 }
 
 async function deleteEntry(id) {
   const e = byId(id); if (!e) return;
-  if (!await ask(`Delete "${title(e)}"? This also removes its attachments.`)) return;
+  if (!await ask(`„${title(e)}" löschen? Die Anhänge werden ebenfalls gelöscht.`, 'Ja, löschen')) return;
   const files = await filesFor(id);
   for (const f of files) await dbDel('files', f.id);
   await dbDel('entries', id);
@@ -1461,13 +1507,13 @@ async function deleteEntry(id) {
   await tombstone('file', files.map(f => f.id));
   state.entries = state.entries.filter(x => x.id !== id);
   scheduleSync();
-  toast('Deleted');
+  toast('Gelöscht');
   go('#/topic/' + e.topic);
 }
 
-/* ---------- search & tags ---------- */
+/* ---------- Suche & Tags ---------- */
 function flatValues(t, d) {
-  return t.fields.flatMap(f => f.type === 'group' ? (d[f.key] || []).flatMap(r => Object.values(r)) : ['link', 'custom', 'hidden'].includes(f.type) ? [] : [d[f.key]])
+  return t.fields.flatMap(f => f.type === 'group' ? (d[f.key] || []).flatMap(r => Object.values(r).flatMap(v => [v, L(v)])) : ['link', 'custom', 'hidden'].includes(f.type) ? [] : f.type === 'select' ? [d[f.key], L(d[f.key])] : [d[f.key]])
     .filter(v => v !== '' && v != null && typeof v !== 'object');
 }
 function haystack(e) {
@@ -1488,140 +1534,138 @@ function viewSearch(query) {
   const hits = terms.length ? state.entries.filter(e => terms.every(x => haystack(e).includes(x))) : [];
   const grouped = TOPICS.map(t => [t, hits.filter(e => e.topic === t.id)]).filter(g => g[1].length);
   main.innerHTML = `
-    <div class="page-head"><div><h1>Search</h1><p class="muted">${terms.length ? `${hits.length} result${hits.length === 1 ? '' : 's'} for “${h(query)}”` : 'Type in the search bar above to search all topics, fields and tags.'}</p></div></div>
+    <div class="page-head"><div><h1>Suche</h1><p class="muted">${terms.length ? `${hits.length} ${hits.length === 1 ? 'Treffer' : 'Treffer'} für „${h(query)}"` : 'Tippe oben ins Suchfeld, um alle Themen, Felder und Tags zu durchsuchen.'}</p></div></div>
     <div class="stack">${grouped.map(([t, list]) => `
       <div class="card"><h2>${t.icon} ${h(t.name)}</h2><div class="linklist">${list.map(e => {
         const f = t.fields.find(f => !['link', 'custom', 'hidden', 'group'].includes(f.type) && f.key !== t.titleField && terms.some(x => String(e.data[f.key] ?? '').toLowerCase().includes(x)));
         return `<a href="#/entry/${e.id}">${topicIcon(t)}<div><div>${highlight(title(e), terms)}</div>${f ? `<div class="small muted">${h(lbl(f, e.data))}: ${highlight(String(e.data[f.key]).slice(0, 140), terms)}</div>` : ''}</div></a>`;
       }).join('')}</div></div>`).join('')}
-      ${terms.length && !hits.length ? '<div class="card empty"><div class="big">🔎</div><p>Nothing found.</p></div>' : ''}
+      ${terms.length && !hits.length ? '<div class="card empty"><div class="big">🔎</div><p>Nichts gefunden.</p></div>' : ''}
     </div>`;
 }
 function viewTags() {
   const tags = allTags();
   main.innerHTML = `
-    <div class="page-head"><div><h1>🏷️ Tags</h1><p class="muted">Tags group entries across all topics, e.g. #important, #tax-2026 or #moving.</p></div></div>
+    <div class="page-head"><div><h1>🏷️ Tags</h1><p class="muted">Tags gruppieren Einträge über alle Themen hinweg, z.B. #wichtig, #steuern-2026 oder #umzug.</p></div></div>
     <div class="card">${tags.length ? `<div class="chips">${tags.map(([x, n]) => `<a class="chip tag" style="font-size:14px;padding:4px 12px" href="#/tag/${encodeURIComponent(x)}">#${h(x)} <span class="muted">${n}</span></a>`).join('')}</div>`
-      : '<p class="muted" style="margin:0">No tags yet. Add them in the "Tags" field when editing an entry.</p>'}</div>`;
+      : '<p class="muted" style="margin:0">Noch keine Tags. Du kannst sie beim Bearbeiten eines Eintrags im Feld „Tags" hinzufügen.</p>'}</div>`;
 }
 function viewTag(tag) {
   const list = state.entries.filter(e => (e.tags || []).includes(tag));
   main.innerHTML = `
-    <div class="page-head"><div><div class="small muted"><a href="#/tags">Tags</a></div><h1>#${h(tag)}</h1><p class="muted">${list.length} entries</p></div></div>
+    <div class="page-head"><div><div class="small muted"><a href="#/tags">Tags</a></div><h1>#${h(tag)}</h1><p class="muted">${list.length} ${list.length === 1 ? 'Eintrag' : 'Einträge'}</p></div></div>
     <div class="grid cards">${list.map(e => entryCard(e).replace('<div class="t">', `<div class="small muted">${TOPIC[e.topic].icon} ${h(TOPIC[e.topic].name)}</div><div class="t">`)).join('')}</div>`;
 }
 
-/* ---------- plan a new topic ---------- */
+/* ---------- Neues Thema planen ---------- */
 const WISHES = [
-  ['remind', '⏰ Reminders for dates (deadlines, expiry, anniversaries)'],
-  ['costs', '💰 Track costs and show totals'],
-  ['status', '🚦 Status workflow (e.g. planned → doing → done)'],
-  ['progress', '📈 Progress bar / percentage'],
-  ['rating', '⭐ Ratings or priority'],
-  ['files', '📎 Photos and documents'],
-  ['checklist', '☑️ Checklists inside an entry'],
-  ['charts', '📊 Charts / statistics over time'],
-  ['calendar', '📅 Calendar or timeline view'],
-  ['gallery', '🖼️ Gallery view with pictures'],
-  ['country', '🌍 Fields that depend on my country'],
+  ['remind', '⏰ Erinnerungen für Daten (Fristen, Ablaufdaten, Jahrestage)'],
+  ['costs', '💰 Kosten erfassen und Summen anzeigen'],
+  ['status', '🚦 Status-Ablauf (z.B. geplant → in Arbeit → erledigt)'],
+  ['progress', '📈 Fortschrittsbalken / Prozent'],
+  ['rating', '⭐ Bewertung oder Priorität'],
+  ['files', '📎 Fotos und Dokumente'],
+  ['checklist', '☑️ Checklisten innerhalb eines Eintrags'],
+  ['charts', '📊 Diagramme / Statistik über Zeit'],
+  ['calendar', '📅 Kalender- oder Zeitstrahl-Ansicht'],
+  ['gallery', '🖼️ Galerie-Ansicht mit Bildern'],
+  ['country', '🌍 Felder, die von meinem Land abhängen'],
 ];
 function viewRequest() {
   const saved = state.meta.requests || [];
   main.innerHTML = `
-    <div class="page-head"><div><h1>✨ Plan a new topic</h1><p class="muted">Describe the topic and what it should do. Lifebook turns this into a description. Copy it and send it to Claude, who builds the new page for you.</p></div></div>
+    <div class="page-head"><div><h1>✨ Neues Thema planen</h1><p class="muted">Beschreibe das Thema und was es können soll. Lifebook macht daraus eine Beschreibung. Kopiere sie und schick sie Claude, das baut dir die neue Seite.</p></div></div>
     <form id="reqform" class="card form">
       <div class="grid2">
-        <label class="field"><span>Topic name *</span><input type="text" name="name" required placeholder="e.g. Car, Travel, Recipes, Home, Pets"></label>
-        <label class="field"><span>Icon <small>(an emoji)</small></span><input type="text" name="icon" placeholder="🚗" maxlength="8"></label>
+        <label class="field"><span>Name des Themas *</span><input type="text" name="name" required placeholder="z.B. Auto, Reisen, Rezepte, Wohnung, Haustiere"></label>
+        <label class="field"><span>Symbol <small>(ein Emoji)</small></span><input type="text" name="icon" placeholder="🚗" maxlength="8"></label>
       </div>
-      <fieldset class="field"><legend>How is it organised?</legend>
-        <label class="radio"><input type="radio" name="mode" value="list" checked> Many entries, like a list (trips, recipes, service records…)</label>
-        <label class="radio"><input type="radio" name="mode" value="single"> One single page (like "About me")</label>
+      <fieldset class="field"><legend>Wie ist es aufgebaut?</legend>
+        <label class="radio"><input type="radio" name="mode" value="list" checked> Viele Einträge, wie eine Liste (Reisen, Rezepte, Service-Einträge…)</label>
+        <label class="radio"><input type="radio" name="mode" value="single"> Eine einzelne Seite (wie „Über mich")</label>
       </fieldset>
-      <label class="field"><span>What information do you want to store? <small>One per line. Hints in brackets help: (date), (remind me), (cost), (choice: A / B / C), (yes/no), (long text)</small></span>
-        <textarea name="fields" rows="8" placeholder="Brand and model&#10;License plate&#10;Fuel type (choice: Petrol / Diesel / Electric)&#10;Next service (date, remind me)&#10;Insurance cost (cost, yearly)&#10;Notes (long text)"></textarea></label>
-      <fieldset class="field"><legend>What should be possible?</legend>
+      <label class="field"><span>Welche Informationen möchtest du speichern? <small>Eine pro Zeile. Hinweise in Klammern helfen: (Datum), (erinnern), (Kosten), (Auswahl: A / B / C), (ja/nein), (langer Text)</small></span>
+        <textarea name="fields" rows="8" placeholder="Marke und Modell&#10;Kennzeichen&#10;Treibstoff (Auswahl: Benzin / Diesel / Elektro)&#10;Nächster Service (Datum, erinnern)&#10;Versicherungskosten (Kosten, jährlich)&#10;Notizen (langer Text)"></textarea></label>
+      <fieldset class="field"><legend>Was soll möglich sein?</legend>
         <div class="checks">${WISHES.map(([k, l]) => `<label class="check"><input type="checkbox" name="wish" value="${h(l)}"> ${h(l)}</label>`).join('')}</div>
       </fieldset>
-      <fieldset class="field"><legend>Connect it with existing topics</legend>
+      <fieldset class="field"><legend>Mit bestehenden Themen verbinden</legend>
         <div class="checks">${TOPICS.map(t => `<label class="check"><input type="checkbox" name="links" value="${h(t.name)}"> ${t.icon} ${h(t.name)}</label>`).join('')}</div>
       </fieldset>
-      <label class="field"><span>Anything else? <small>Examples, how you'd use it, what the overview should show…</small></span><textarea name="extra" rows="3"></textarea></label>
-      <div class="actions"><button class="btn primary" type="button" data-act="req-create">Create description</button></div>
+      <label class="field"><span>Sonst noch etwas? <small>Beispiele, wie du es nutzen willst, was die Übersicht zeigen soll…</small></span><textarea name="extra" rows="3"></textarea></label>
+      <div class="actions"><button class="btn primary" type="button" data-act="req-create">Beschreibung erstellen</button></div>
     </form>
     <div id="reqout" style="margin-top:16px"></div>
-    ${saved.length ? `<div class="card" style="margin-top:16px"><h2>Saved topic plans</h2>${saved.map((r, i) => `
+    ${saved.length ? `<div class="card" style="margin-top:16px"><h2>Gespeicherte Themen-Pläne</h2>${saved.map((r, i) => `
       <div class="file-row" style="border-bottom:1px solid var(--border);padding:8px 0"><b>${h(r.icon || '•')} ${h(r.name)}</b><span class="muted small">${fmtDate(r.date)}</span>
-      <span style="margin-left:auto" class="actions"><button class="btn sm" data-act="copy-req" data-i="${i}">Copy</button><button class="btn sm danger" data-act="del-req" data-i="${i}">Delete</button></span></div>`).join('')}</div>` : ''}`;
+      <span style="margin-left:auto" class="actions"><button class="btn sm" data-act="copy-req" data-i="${i}">Kopieren</button><button class="btn sm danger" data-act="del-req" data-i="${i}">Löschen</button></span></div>`).join('')}</div>` : ''}`;
   $('#reqform').onsubmit = ev => ev.preventDefault();
 }
 async function createRequest() {
-  {
-    const fd = new FormData($('#reqform'));
-    const name = String(fd.get('name')).trim(); if (!name) return toast('Please give the topic a name');
-    const icon = String(fd.get('icon') || '').trim();
-    const fields = String(fd.get('fields') || '').split('\n').map(s => s.trim()).filter(Boolean);
-    const wishes = fd.getAll('wish'), links = fd.getAll('links'), extra = String(fd.get('extra') || '').trim();
-    const text = [
-      `Please add a new topic to my Lifebook app (lifebook.html):`,
-      ``,
-      `Topic: ${icon ? icon + ' ' : ''}${name}`,
-      `Organisation: ${fd.get('mode') === 'single' ? 'one single page' : 'a list with many entries'}`,
-      ``,
-      `Information to store:`,
-      ...(fields.length ? fields.map(f => `- ${f}`) : ['- (please suggest sensible fields)']),
-      ...(wishes.length ? ['', 'What should be possible:', ...wishes.map(w => `- ${w.replace(/^\S+\s/, '')}`)] : []),
-      ...(links.length ? ['', `Connect with: ${links.join(', ')}`] : []),
-      ...(extra ? ['', 'Other wishes:', extra] : []),
-    ].join('\n');
-    const reqs = [{ name, icon, date: todayISO(), text }, ...(state.meta.requests || [])].slice(0, 30);
-    await setMeta('requests', reqs);
-    viewRequest();
-    $('#reqout').innerHTML = `<div class="card"><h2>Your topic description</h2><pre class="out">${h(text)}</pre>
-      <div class="actions"><button class="btn primary" data-act="copy-req" data-i="0">📋 Copy to clipboard</button></div>
-      <p class="small muted">Paste it into your chat with Claude. It's also saved below so you can copy it again later.</p></div>`;
-    $('#reqout').scrollIntoView({ behavior: 'smooth' });
-  }
+  const fd = new FormData($('#reqform'));
+  const name = String(fd.get('name')).trim(); if (!name) return toast('Bitte gib dem Thema einen Namen');
+  const icon = String(fd.get('icon') || '').trim();
+  const fields = String(fd.get('fields') || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const wishes = fd.getAll('wish'), links = fd.getAll('links'), extra = String(fd.get('extra') || '').trim();
+  const text = [
+    `Bitte füge meiner Lifebook-App (lifebook.html) ein neues Thema hinzu:`,
+    ``,
+    `Thema: ${icon ? icon + ' ' : ''}${name}`,
+    `Aufbau: ${fd.get('mode') === 'single' ? 'eine einzelne Seite' : 'eine Liste mit vielen Einträgen'}`,
+    ``,
+    `Zu speichernde Informationen:`,
+    ...(fields.length ? fields.map(f => `- ${f}`) : ['- (bitte sinnvolle Felder vorschlagen)']),
+    ...(wishes.length ? ['', 'Was möglich sein soll:', ...wishes.map(w => `- ${w.replace(/^\S+\s/, '')}`)] : []),
+    ...(links.length ? ['', `Verbinden mit: ${links.join(', ')}`] : []),
+    ...(extra ? ['', 'Weitere Wünsche:', extra] : []),
+  ].join('\n');
+  const reqs = [{ name, icon, date: todayISO(), text }, ...(state.meta.requests || [])].slice(0, 30);
+  await setMeta('requests', reqs);
+  viewRequest();
+  $('#reqout').innerHTML = `<div class="card"><h2>Deine Themen-Beschreibung</h2><pre class="out">${h(text)}</pre>
+    <div class="actions"><button class="btn primary" data-act="copy-req" data-i="0">📋 In die Zwischenablage kopieren</button></div>
+    <p class="small muted">Füge sie in deinen Chat mit Claude ein. Sie ist unten auch gespeichert, damit du sie später nochmals kopieren kannst.</p></div>`;
+  $('#reqout').scrollIntoView({ behavior: 'smooth' });
 }
 async function copyText(text) {
-  try { await navigator.clipboard.writeText(text); toast('Copied, now paste it to Claude'); }
-  catch { const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Copied'); }
+  try { await navigator.clipboard.writeText(text); toast('Kopiert. Jetzt bei Claude einfügen.'); }
+  catch { const ta = document.createElement('textarea'); ta.value = text; document.body.append(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Kopiert'); }
 }
 
-/* ---------- backup & settings ---------- */
+/* ---------- Backup & Einstellungen ---------- */
 let pendingImport = null;
 function viewBackup() {
   const last = state.meta.lastBackup;
   main.innerHTML = `
-    <div class="page-head"><div><h1>💾 Backup & settings</h1><p class="muted">Everything is stored only in this browser on this computer. The only online requests are address suggestions while you type in the address search.</p></div></div>
+    <div class="page-head"><div><h1>💾 Backup & Einstellungen</h1><p class="muted">Deine Daten liegen im Browser dieses Geräts${syncConfigured() ? ' und verschlüsselt in deinem OneDrive' : ''}.</p></div></div>
     <div class="stack">
       <div class="card form">
-        <h2>Settings</h2>
+        <h2>Einstellungen</h2>
         <div class="grid2">
-          <label class="field"><span>Name for the greeting <small>(default: first name from About me)</small></span><input type="text" id="s_name" value="${h(state.meta.name || '')}"></label>
-          <label class="field"><span>Currency <small>(default: ${h(myCountry().currency || 'none')}, from your country)</small></span><input type="text" id="s_cur" value="${h(state.meta.currency || '')}" maxlength="5" placeholder="${h(myCountry().currency || 'e.g. CHF')}"></label>
+          <label class="field"><span>Name für die Begrüssung <small>(Standard: Vorname aus „Über mich")</small></span><input type="text" id="s_name" value="${h(state.meta.name || '')}"></label>
+          <label class="field"><span>Währung <small>(Standard: ${h(myCountry().currency || 'keine')}, aus deinem Land)</small></span><input type="text" id="s_cur" value="${h(state.meta.currency || '')}" maxlength="5" placeholder="${h(myCountry().currency || 'z.B. CHF')}"></label>
         </div>
       </div>
       <div class="card">
-        <h2>Export a backup</h2>
-        <p class="muted small">${last ? 'Last backup: ' + new Date(last).toLocaleString() : 'No backup made yet.'} The file contains all entries and attachments. Store it somewhere safe, such as a USB stick or your cloud drive. It is not encrypted, so treat it like a private document.</p>
-        <button class="btn primary" data-act="export">⬇️ Download backup (.json)</button>
+        <h2>Backup herunterladen</h2>
+        <p class="muted small">${last ? 'Letztes Backup: ' + new Date(last).toLocaleString(LOCALE) : 'Noch kein Backup gemacht.'} Die Datei enthält alle Einträge und Anhänge. Bewahre sie an einem sicheren Ort auf, z.B. auf einem USB-Stick. ⚠️ Sie ist <b>nicht verschlüsselt</b>, also wie ein privates Dokument behandeln und nie öffentlich hochladen (z.B. nicht auf GitHub).</p>
+        <button class="btn primary" data-act="export">⬇️ Backup herunterladen (.json)</button>
       </div>
       <div class="card">
-        <h2>Restore from a backup</h2>
-        <p class="muted small">Choose a Lifebook backup file. You can then merge it with your current data or replace everything.</p>
-        <label class="btn">📂 Choose backup file<input type="file" id="importfile" accept=".json,application/json" hidden></label>
+        <h2>Aus Backup wiederherstellen</h2>
+        <p class="muted small">Wähle eine Lifebook-Backup-Datei. Danach kannst du sie mit deinen aktuellen Daten zusammenführen oder alles ersetzen.</p>
+        <label class="btn">📂 Backup-Datei wählen<input type="file" id="importfile" accept=".json,application/json" hidden></label>
         <div id="importbox" style="margin-top:12px"></div>
       </div>
       <div class="card">
-        <h2>Storage</h2>
-        <p class="muted small" id="storageinfo">${state.entries.length} entries in ${TOPICS.length} topics.</p>
+        <h2>Speicher</h2>
+        <p class="muted small" id="storageinfo">${state.entries.length} Einträge in ${TOPICS.length} Themen.</p>
       </div>
     </div>`;
-  $('#s_name').onchange = ev => { setMeta('name', ev.target.value.trim()); toast('Saved'); };
-  $('#s_cur').onchange = ev => { setMeta('currency', ev.target.value.trim().toUpperCase()); toast('Saved'); };
+  $('#s_name').onchange = ev => { setMeta('name', ev.target.value.trim()); toast('Gespeichert'); };
+  $('#s_cur').onchange = ev => { setMeta('currency', ev.target.value.trim().toUpperCase()); toast('Gespeichert'); };
   navigator.storage?.estimate?.().then(est => {
-    const el = $('#storageinfo'); if (el) el.textContent += ` Using about ${fmtSize(est.usage || 0)} of browser storage.`;
+    const el = $('#storageinfo'); if (el) el.textContent += ` Belegt etwa ${fmtSize(est.usage || 0)} im Browser.`;
   });
 }
 const blobToDataURL = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
@@ -1633,7 +1677,7 @@ function dataURLToBlob(u) {
   return new Blob([arr], { type });
 }
 async function exportBackup() {
-  toast('Preparing backup…');
+  toast('Backup wird vorbereitet…');
   const files = await dbAll('files');
   const out = {
     app: 'lifebook', version: 1, exported: new Date().toISOString(),
@@ -1647,21 +1691,21 @@ async function exportBackup() {
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   await setMeta('lastBackup', new Date().toISOString());
-  toast('Backup downloaded ✓');
+  toast('Backup heruntergeladen ✓');
   if (currentRoute === '#/backup') viewBackup();
 }
 async function readImport(file) {
   try {
     const json = JSON.parse(await file.text());
-    if (json.app !== 'lifebook' || !Array.isArray(json.entries)) throw new Error('not a Lifebook backup');
+    if (json.app !== 'lifebook' || !Array.isArray(json.entries)) throw new Error('kein Lifebook-Backup');
     pendingImport = json;
-    $('#importbox').innerHTML = `<div class="notice" style="background:var(--accent-soft);color:var(--text)"><span>Backup from <b>${new Date(json.exported).toLocaleString()}</b>: ${json.entries.length} entries, ${(json.files || []).length} files.</span>
-      <span class="actions"><button class="btn sm" data-act="import-merge">Merge (keep newer)</button><button class="btn sm danger" data-act="import-replace">Replace everything</button></span></div>`;
-  } catch (err) { toast('Could not read file: ' + err.message); }
+    $('#importbox').innerHTML = `<div class="notice" style="background:var(--accent-soft);color:var(--text)"><span>Backup vom <b>${new Date(json.exported).toLocaleString(LOCALE)}</b>: ${json.entries.length} Einträge, ${(json.files || []).length} Dateien.</span>
+      <span class="actions"><button class="btn sm" data-act="import-merge">Zusammenführen (neuere behalten)</button><button class="btn sm danger" data-act="import-replace">Alles ersetzen</button></span></div>`;
+  } catch (err) { toast('Datei konnte nicht gelesen werden: ' + err.message); }
 }
 async function doImport(replace) {
   const json = pendingImport; if (!json) return;
-  if (replace && !await ask('Replace ALL current data with this backup? Current entries and files will be removed.')) return;
+  if (replace && !await ask('ALLE aktuellen Daten durch dieses Backup ersetzen? Die aktuellen Einträge und Dateien werden entfernt.', 'Ja, ersetzen')) return;
   if (replace) {
     await dbClear('entries');
     await dbClear('files');
@@ -1685,29 +1729,29 @@ async function doImport(replace) {
   for (const [k, v] of Object.entries(json.meta || {})) if (!k.startsWith('_') && (replace || state.meta[k] === undefined)) await setMeta(k, v);
   pendingImport = null;
   scheduleSync();
-  toast(`Imported ${touched.size} entries ✓`);
+  toast(`${touched.size} Einträge importiert ✓`);
   go('#/');
 }
 
 /* =====================================================================
-   MICROSOFT SIGN-IN (OAuth 2 with PKCE, no extra libraries)
-   Used for OneDrive sync and reading Outlook/Hotmail emails.
+   MICROSOFT-ANMELDUNG (OAuth 2 mit PKCE, ohne Zusatzbibliotheken)
+   Für die OneDrive-Synchronisierung und zum Lesen von Outlook/Hotmail-E-Mails.
    ===================================================================== */
-const CLIENT_ID = 'c42b89ee-93a0-44f5-9669-f0eea6641ef3'; // Microsoft app (client) ID of the "Lifebook" app registration
+const CLIENT_ID = 'c42b89ee-93a0-44f5-9669-f0eea6641ef3'; // Anwendungs-ID (Client) der App-Registrierung "Lifebook"
 const AUTH_URL = 'https://login.microsoftonline.com/consumers/oauth2/v2.0';
 const SCOPES = 'openid profile offline_access User.Read Files.ReadWrite.AppFolder Mail.Read';
 const clientId = () => state.meta._clientId || CLIENT_ID;
 const canSignIn = () => location.protocol === 'https:' || location.hostname === 'localhost';
 const redirectUri = () => location.origin + location.pathname;
-class NeedLogin extends Error { constructor() { super('Please reconnect your Microsoft account'); } }
-class Conflict extends Error { constructor() { super('Changed on another device'); } }
+class NeedLogin extends Error { constructor() { super('Bitte verbinde dein Microsoft-Konto erneut'); } }
+class Conflict extends Error { constructor() { super('Auf einem anderen Gerät geändert'); } }
 const b64url = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const toB64 = bytes => { let s = ''; const u = new Uint8Array(bytes); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
 const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 
 async function signIn(prompt) {
-  if (!canSignIn()) return toast('Sign-in only works from your online Lifebook address (https://…)');
-  if (!clientId()) return toast('Enter the Microsoft app ID first');
+  if (!canSignIn()) return toast('Die Anmeldung funktioniert nur über deine Online-Adresse (https://…)');
+  if (!clientId()) return toast('Gib zuerst die Microsoft-App-ID ein');
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(48)));
   const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
   const st = b64url(crypto.getRandomValues(new Uint8Array(16)));
@@ -1717,7 +1761,7 @@ async function signIn(prompt) {
   const hint = state.meta._account?.email; if (hint) p.set('login_hint', hint);
   location.href = AUTH_URL + '/authorize?' + p;
 }
-/* called on start-up: finishes a sign-in when Microsoft sends the user back with ?code=… */
+/* beim Start: Anmeldung abschliessen, wenn Microsoft mit ?code=… zurückleitet */
 async function handleRedirect() {
   const q = new URLSearchParams(location.search);
   if (!q.get('code') && !q.get('error')) return;
@@ -1727,16 +1771,16 @@ async function handleRedirect() {
   try { history.replaceState(null, '', redirectUri() + currentRoute); } catch { }
   if (q.get('error')) {
     if (saved.silent) setSync('login');
-    else toast('Microsoft sign-in was cancelled or failed: ' + (q.get('error_description') || q.get('error')).slice(0, 160));
+    else toast('Microsoft-Anmeldung abgebrochen oder fehlgeschlagen: ' + (q.get('error_description') || q.get('error')).slice(0, 160));
     return;
   }
-  if (!saved.state || q.get('state') !== saved.state) return toast('Sign-in check failed, please try again');
+  if (!saved.state || q.get('state') !== saved.state) return toast('Anmeldeprüfung fehlgeschlagen, bitte nochmals versuchen');
   try {
     await tokenRequest({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: redirectUri(), code_verifier: saved.verifier });
     const me = await (await graph('/me?$select=displayName,userPrincipalName,mail')).json();
     await setMeta('_account', { name: me.displayName || '', email: me.mail || me.userPrincipalName || '' });
-    if (!saved.silent) toast('Microsoft account connected ✓');
-  } catch (e) { toast('Sign-in failed: ' + e.message); }
+    if (!saved.silent) toast('Microsoft-Konto verbunden ✓');
+  } catch (e) { toast('Anmeldung fehlgeschlagen: ' + e.message); }
 }
 async function tokenRequest(params) {
   const r = await fetch(AUTH_URL + '/token', {
@@ -1744,7 +1788,7 @@ async function tokenRequest(params) {
     body: new URLSearchParams({ client_id: clientId(), scope: SCOPES, ...params }),
   });
   const j = await r.json();
-  if (!r.ok) throw new Error(j.error_description || j.error || 'token error');
+  if (!r.ok) throw new Error(j.error_description || j.error || 'Token-Fehler');
   await setMeta('_auth', { access: j.access_token, refresh: j.refresh_token || state.meta._auth?.refresh, exp: Date.now() + (j.expires_in - 120) * 1000 });
 }
 async function getToken() {
@@ -1766,14 +1810,14 @@ async function graph(path, { method = 'GET', body, headers = {} } = {}) {
 }
 async function gErr(r) { let m = r.status + ''; try { const j = await r.json(); m = j.error?.message || m; } catch { } return new Error('Microsoft: ' + m); }
 async function disconnectMicrosoft() {
-  if (!await ask('Disconnect this device from your Microsoft account? Your Lifebook data stays on this device.', 'Disconnect')) return;
+  if (!await ask('Dieses Gerät vom Microsoft-Konto trennen? Deine Lifebook-Daten bleiben auf diesem Gerät.', 'Trennen')) return;
   for (const k of ['_auth', '_account', '_syncKey', '_lastSync']) await setMeta(k, null);
   setSync('off'); viewSync();
 }
 
 /* =====================================================================
-   ENCRYPTION — AES-256-GCM, key derived from your sync password (PBKDF2).
-   Only encrypted data is uploaded; the password never leaves the device.
+   VERSCHLÜSSELUNG: AES-256-GCM, Schlüssel aus dem Sync-Passwort (PBKDF2).
+   Hochgeladen werden nur verschlüsselte Daten; das Passwort verlässt das Gerät nie.
    ===================================================================== */
 const TE = new TextEncoder(), TD = new TextDecoder();
 async function deriveKey(password, salt, iterations = 310000) {
@@ -1792,7 +1836,7 @@ async function decryptBytes(key, buf) {
 }
 
 /* =====================================================================
-   ONEDRIVE — files live in the private app folder "Apps/<app name>"
+   ONEDRIVE: Dateien liegen im privaten App-Ordner "Apps/<App-Name>"
    ===================================================================== */
 const SYNC_FILE = 'lifebook-data.bin', KEY_FILE = 'lifebook-key.json';
 const oneDrive = {
@@ -1804,7 +1848,7 @@ const oneDrive = {
   },
   async download(item) {
     const r = await fetch(item['@microsoft.graph.downloadUrl']);
-    if (!r.ok) throw new Error('Download from OneDrive failed (' + r.status + ')');
+    if (!r.ok) throw new Error('Download von OneDrive fehlgeschlagen (' + r.status + ')');
     return r.arrayBuffer();
   },
   async upload(path, bytes, etag) {
@@ -1814,7 +1858,7 @@ const oneDrive = {
       if (!r.ok) throw await gErr(r);
       return r.json();
     }
-    // large files: resumable upload in 5 MB pieces
+    // grosse Dateien: fortsetzbarer Upload in 5-MB-Stücken
     const s = await graph(`/me/drive/special/approot:/${path}:/createUploadSession`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'replace' } }) });
     if (!s.ok) throw await gErr(s);
     const { uploadUrl } = await s.json();
@@ -1822,7 +1866,7 @@ const oneDrive = {
     for (let i = 0; i < bytes.byteLength; i += CH) {
       const part = bytes.slice(i, i + CH);
       res = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${i}-${i + part.byteLength - 1}/${bytes.byteLength}` }, body: part });
-      if (!res.ok) throw new Error('Upload to OneDrive failed (' + res.status + ')');
+      if (!res.ok) throw new Error('Upload zu OneDrive fehlgeschlagen (' + res.status + ')');
     }
     return res.json();
   },
@@ -1831,17 +1875,17 @@ const oneDrive = {
     if (!r.ok && r.status !== 404) throw await gErr(r);
   },
 };
-const driveImpl = () => window.__testDrive || oneDrive; // a test double can be plugged in for local testing
+const driveImpl = () => window.__testDrive || oneDrive; // für lokale Tests austauschbar
 const msConnected = () => !!(window.__testDrive || state.meta._account);
 const syncConfigured = () => msConnected() && !!state.meta._syncKey;
 
 async function setSyncPassword() {
   const pw1 = $('#pw1')?.value || '', pw2 = $('#pw2');
   const creating = !!pw2;
-  if (creating && pw1.length < 10) return toast('Please use at least 10 characters');
-  if (creating && pw1 !== pw2.value) return toast('The passwords don’t match');
-  if (!pw1) return toast('Enter your sync password');
-  const btn = $('[data-act=key-set]'); if (btn) { btn.disabled = true; btn.textContent = 'Working…'; }
+  if (creating && pw1.length < 10) return toast('Bitte mindestens 10 Zeichen verwenden');
+  if (creating && pw1 !== pw2.value) return toast('Die Passwörter stimmen nicht überein');
+  if (!pw1) return toast('Gib dein Sync-Passwort ein');
+  const btn = $('[data-act=key-set]'); if (btn) { btn.disabled = true; btn.textContent = 'Bitte warten…'; }
   try {
     const d = driveImpl();
     const item = await d.getItem(KEY_FILE);
@@ -1850,7 +1894,7 @@ async function setSyncPassword() {
       const kf = JSON.parse(TD.decode(await d.download(item)));
       key = await deriveKey(pw1, fromB64(kf.salt), kf.iterations);
       try { if (TD.decode(await decryptBytes(key, fromB64(kf.check))) !== 'lifebook-ok') throw 0; }
-      catch { throw new Error('Wrong sync password'); }
+      catch { throw new Error('Falsches Sync-Passwort'); }
     } else {
       const salt = crypto.getRandomValues(new Uint8Array(16)), iterations = 310000;
       key = await deriveKey(pw1, salt, iterations);
@@ -1858,25 +1902,26 @@ async function setSyncPassword() {
       await d.upload(KEY_FILE, TE.encode(JSON.stringify({ v: 1, salt: toB64(salt), iterations, check: toB64(check) })));
     }
     await setMeta('_syncKey', key);
-    toast('Sync password saved on this device ✓');
+    toast('Sync-Passwort auf diesem Gerät gespeichert ✓');
     await syncNow();
   } catch (e) { toast(e.message); }
   viewSync();
 }
 
 /* =====================================================================
-   SYNC — merge by "last change wins" per entry; deletions are remembered
+   SYNCHRONISIERUNG: pro Eintrag gewinnt die neuere Änderung;
+   Löschungen werden gemerkt und übertragen
    ===================================================================== */
 let syncState = { s: 'off', msg: '' }, syncTimer = null, syncRunning = null;
 function setSync(s, msg = '') { syncState = { s, msg }; renderSyncChip(); }
 function syncLabel() {
   if (!msConnected()) return null;
-  if (!state.meta._syncKey) return ['🔑', 'Set sync password'];
+  if (!state.meta._syncKey) return ['🔑', 'Sync-Passwort fehlt'];
   switch (syncState.s) {
-    case 'syncing': return ['⏳', 'Syncing…'];
-    case 'error': return ['⚠️', 'Sync problem'];
-    case 'login': return ['🔑', 'Reconnect'];
-    default: return ['☁️', state.meta._lastSync ? 'Synced ' + timeAgo(state.meta._lastSync) : 'Not synced yet'];
+    case 'syncing': return ['⏳', 'Synchronisiere…'];
+    case 'error': return ['⚠️', 'Sync-Problem'];
+    case 'login': return ['🔑', 'Neu verbinden'];
+    default: return ['☁️', state.meta._lastSync ? 'Synchronisiert ' + timeAgo(state.meta._lastSync) : 'Noch nicht synchronisiert'];
   }
 }
 function renderSyncChip() {
@@ -1918,7 +1963,7 @@ async function syncOnce() {
   if (item) remote = { ...remote, ...JSON.parse(TD.decode(await decryptBytes(key, await d.download(item)))) };
   const remoteJSON = item ? JSON.stringify({ ...remote, savedAt: undefined }) : '';
 
-  // 1. merge deletions and entries
+  // 1. Löschungen und Einträge zusammenführen
   const del = { ...remote.deleted }, delF = { ...remote.deletedFiles };
   for (const [id, t] of Object.entries(state.meta.deleted || {})) del[id] = newer(t, del[id]);
   for (const [id, t] of Object.entries(state.meta.deletedFiles || {})) delF[id] = newer(t, delF[id]);
@@ -1926,7 +1971,7 @@ async function syncOnce() {
   for (const e of state.entries) { const r = merged.get(e.id); if (!r || r.updated < e.updated) merged.set(e.id, clean(e)); }
   for (const [id, t] of Object.entries(del)) { const e = merged.get(id); if (e && e.updated <= t) merged.delete(id); }
 
-  // 2. apply to this device
+  // 2. auf dieses Gerät übernehmen
   let changed = false;
   for (const e of merged.values()) {
     const loc = byId(e.id);
@@ -1940,7 +1985,7 @@ async function syncOnce() {
     changed = true;
   }
 
-  // 3. attachments: each file is a separate encrypted blob in "files/"
+  // 3. Anhänge: jede Datei ist ein eigener verschlüsselter Blob in "files/"
   const localFiles = await dbAll('files');
   const localIds = new Set(localFiles.map(f => f.id));
   const idx = new Map((remote.files || []).map(f => [f.id, f]));
@@ -1964,7 +2009,7 @@ async function syncOnce() {
     const { blob, ...info } = f; idx.set(f.id, info);
   }
 
-  // 4. settings (name, currency, topic plans): newest wins
+  // 4. Einstellungen (Name, Währung, Themen-Pläne): die neuere gewinnt
   const localSettings = { updated: state.meta.settingsUpdated || '', ...Object.fromEntries(SYNCED_META.map(k => [k, state.meta[k]])) };
   let settings = localSettings;
   if (remote.settings && remote.settings.updated > localSettings.updated) {
@@ -1974,7 +2019,7 @@ async function syncOnce() {
     changed = true;
   }
 
-  // 5. remember merged deletions locally, refresh attachment counts
+  // 5. zusammengeführte Löschungen lokal merken, Anhang-Zähler aktualisieren
   state.meta.deleted = del; await dbPut('meta', { key: 'deleted', value: del });
   state.meta.deletedFiles = delF; await dbPut('meta', { key: 'deletedFiles', value: delF });
   if (changed) {
@@ -1982,42 +2027,42 @@ async function syncOnce() {
     for (const e of state.entries) e.fileCount = counts[e.id] || 0;
   }
 
-  // 6. upload the merged state if anything differs from what is on OneDrive
+  // 6. zusammengeführten Stand hochladen, falls er sich von OneDrive unterscheidet
   const payload = { v: 1, entries: [...merged.values()], deleted: del, deletedFiles: delF, files: [...idx.values()], settings };
   if (JSON.stringify({ ...payload, savedAt: undefined }) !== remoteJSON) {
     await d.upload(SYNC_FILE, await encryptBytes(key, TE.encode(JSON.stringify({ ...payload, savedAt: now }))), item?.eTag);
   }
-  // re-render with the new data, but never while a form is open
+  // mit neuen Daten neu anzeigen, aber nie während ein Formular offen ist
   if (changed && !/^#\/(edit|new)\//.test(currentRoute)) route();
 }
 
 function viewSync() {
   const hosted = canSignIn(), acc = state.meta._account;
   main.innerHTML = `
-    <div class="page-head"><div><h1>📱 Phone & sync</h1><p class="muted">Use Lifebook on your iPhone and PC with the same data. Everything is encrypted with your own sync password before it is stored in your OneDrive. Microsoft can't read it, and neither can anyone else without the password.</p></div></div>
+    <div class="page-head"><div><h1>📱 Handy & Sync</h1><p class="muted">Nutze Lifebook auf iPhone und PC mit denselben Daten. Alles wird mit deinem eigenen Sync-Passwort verschlüsselt, bevor es in dein OneDrive gelangt. Weder Microsoft noch sonst jemand kann es ohne das Passwort lesen.</p></div></div>
     <div class="stack">
-      ${!hosted ? `<div class="notice"><span>💻 This copy is opened as a <b>local file</b>. Microsoft sign-in only works from your online Lifebook address (https://…). Open that address to set up sync.</span></div>` : ''}
+      ${!hosted ? `<div class="notice"><span>💻 Diese Kopie ist als <b>lokale Datei</b> geöffnet. Die Microsoft-Anmeldung funktioniert nur über deine Online-Adresse (https://…). Öffne diese, um die Synchronisierung einzurichten.</span></div>` : ''}
       <div class="card form">
-        <h2>1. Microsoft account</h2>
-        ${acc ? `<p style="margin:0 0 12px">✅ Connected as <b>${h(acc.name)}</b> <span class="muted">(${h(acc.email)})</span></p>
-          ${syncState.s === 'login' ? `<button class="btn primary" data-act="reconnect">🔑 Reconnect</button> ` : ''}<button class="btn sm danger" data-act="ms-disconnect">Disconnect this device</button>`
-        : `<label class="field"><span>Microsoft app ID <small>(Application / client ID of your app registration)</small></span>
+        <h2>1. Microsoft-Konto</h2>
+        ${acc ? `<p style="margin:0 0 12px">✅ Verbunden als <b>${h(acc.name)}</b> <span class="muted">(${h(acc.email)})</span></p>
+          ${syncState.s === 'login' ? `<button class="btn primary" data-act="reconnect">🔑 Neu verbinden</button> ` : ''}<button class="btn sm danger" data-act="ms-disconnect">Dieses Gerät trennen</button>`
+        : `<label class="field"><span>Microsoft-App-ID <small>(Anwendungs-ID (Client) deiner App-Registrierung)</small></span>
             <input type="text" id="s_client" value="${h(clientId())}" placeholder="00000000-0000-0000-0000-000000000000" autocomplete="off"></label>
-          <p class="small muted">Redirect URI to register (type "Single-page application"): <code>${h(redirectUri())}</code></p>
-          <button class="btn primary" data-act="ms-connect" ${hosted ? '' : 'disabled'}>Connect Microsoft account</button>`}
+          <p class="small muted">Umleitungs-URI für die Registrierung (Typ „Single-Page-Anwendung"): <code>${h(redirectUri())}</code></p>
+          <button class="btn primary" data-act="ms-connect" ${hosted ? '' : 'disabled'}>Microsoft-Konto verbinden</button>`}
       </div>
-      ${acc ? `<div class="card form" id="keycard"><h2>2. Sync password</h2>
-        ${state.meta._syncKey ? `<p style="margin:0 0 12px" class="ok">🔒 Your sync password is remembered on this device.</p><button class="btn sm" data-act="key-forget">Forget on this device</button>`
-          : `<p class="muted small">Checking OneDrive…</p>`}</div>` : ''}
-      ${syncConfigured() ? `<div class="card"><h2>3. Sync</h2>
-        <p style="margin:0 0 6px">${syncState.s === 'error' ? `<span class="bad">⚠️ ${h(syncState.msg)}</span>` : syncState.s === 'login' ? '<span class="warn">🔑 Your Microsoft sign-in expired. Please reconnect.</span>' : state.meta._lastSync ? '☁️ Last synced ' + h(timeAgo(state.meta._lastSync)) : 'Not synced yet'}</p>
-        <p class="small muted">Lifebook syncs automatically when it opens, after every change, and when you come back to it.</p>
-        <button class="btn primary" data-act="sync-now">🔄 Sync now</button></div>` : ''}
-      <div class="card"><h2>📲 Put Lifebook on your iPhone home screen</h2>
+      ${acc ? `<div class="card form" id="keycard"><h2>2. Sync-Passwort</h2>
+        ${state.meta._syncKey ? `<p style="margin:0 0 12px" class="ok">🔒 Dein Sync-Passwort ist auf diesem Gerät gespeichert.</p><button class="btn sm" data-act="key-forget">Auf diesem Gerät vergessen</button>`
+          : `<p class="muted small">OneDrive wird geprüft…</p>`}</div>` : ''}
+      ${syncConfigured() ? `<div class="card"><h2>3. Synchronisierung</h2>
+        <p style="margin:0 0 6px">${syncState.s === 'error' ? `<span class="bad">⚠️ ${h(syncState.msg)}</span>` : syncState.s === 'login' ? '<span class="warn">🔑 Deine Microsoft-Anmeldung ist abgelaufen. Bitte neu verbinden.</span>' : state.meta._lastSync ? '☁️ Zuletzt synchronisiert ' + h(timeAgo(state.meta._lastSync)) : 'Noch nicht synchronisiert'}</p>
+        <p class="small muted">Lifebook synchronisiert automatisch beim Öffnen, nach jeder Änderung und wenn du zur App zurückkehrst.</p>
+        <button class="btn primary" data-act="sync-now">🔄 Jetzt synchronisieren</button></div>` : ''}
+      <div class="card"><h2>📲 Lifebook auf den iPhone-Home-Bildschirm legen</h2>
         <ol class="steps">
-          <li>Open ${hosted ? `<code>${h(redirectUri())}</code>` : 'your online Lifebook address'} in <b>Safari</b> on your iPhone.</li>
-          <li>Tap the <b>Share</b> button (square with an arrow) → <b>Add to Home Screen</b> → <b>Add</b>.</li>
-          <li>Open Lifebook from the home screen, connect your Microsoft account and enter the same sync password.</li>
+          <li>Öffne ${hosted ? `<code>${h(redirectUri())}</code>` : 'deine Online-Adresse von Lifebook'} in <b>Safari</b> auf dem iPhone.</li>
+          <li>Tippe auf <b>Teilen</b> (Quadrat mit Pfeil) → <b>Zum Home-Bildschirm</b> → <b>Hinzufügen</b>.</li>
+          <li>Öffne Lifebook über das neue Symbol, verbinde dein Microsoft-Konto und gib dasselbe Sync-Passwort ein.</li>
         </ol></div>
     </div>`;
   if (acc && !state.meta._syncKey) checkKeyFile();
@@ -2026,43 +2071,43 @@ async function checkKeyFile() {
   const card = $('#keycard'); if (!card) return;
   try {
     const exists = !!(await driveImpl().getItem(KEY_FILE));
-    card.innerHTML = `<h2>2. Sync password</h2>` + (exists
-      ? `<p class="muted small">Lifebook data already exists in your OneDrive. Enter the sync password you chose on your other device.</p>
-        <label class="field"><span>Sync password</span><input type="password" id="pw1" autocomplete="current-password"></label>
-        <button class="btn primary" data-act="key-set">Unlock & sync</button>`
-      : `<p class="muted small">Choose a password that encrypts your data. You'll enter it once on each device. <b>Write it down somewhere safe.</b> If you lose it, the synced copy can't be recovered (your local data and backups are not affected).</p>
-        <div class="grid2"><label class="field"><span>New sync password <small>(min. 10 characters)</small></span><input type="password" id="pw1" autocomplete="new-password"></label>
-        <label class="field"><span>Repeat password</span><input type="password" id="pw2" autocomplete="new-password"></label></div>
-        <button class="btn primary" data-act="key-set">Create & start syncing</button>`);
+    card.innerHTML = `<h2>2. Sync-Passwort</h2>` + (exists
+      ? `<p class="muted small">In deinem OneDrive gibt es schon Lifebook-Daten. Gib das Sync-Passwort ein, das du auf deinem anderen Gerät gewählt hast.</p>
+        <label class="field"><span>Sync-Passwort</span><input type="password" id="pw1" autocomplete="current-password"></label>
+        <button class="btn primary" data-act="key-set">Entsperren & synchronisieren</button>`
+      : `<p class="muted small">Wähle ein Passwort, mit dem deine Daten verschlüsselt werden. Du gibst es auf jedem Gerät einmal ein. <b>Schreib es auf und bewahre es sicher auf.</b> Geht es verloren, lässt sich die synchronisierte Kopie nicht wiederherstellen (deine lokalen Daten und Backups sind davon nicht betroffen).</p>
+        <div class="grid2"><label class="field"><span>Neues Sync-Passwort <small>(mind. 10 Zeichen)</small></span><input type="password" id="pw1" autocomplete="new-password"></label>
+        <label class="field"><span>Passwort wiederholen</span><input type="password" id="pw2" autocomplete="new-password"></label></div>
+        <button class="btn primary" data-act="key-set">Erstellen & Synchronisierung starten</button>`);
   } catch (e) {
-    card.innerHTML = `<h2>2. Sync password</h2>` + (e instanceof NeedLogin
-      ? `<p class="warn">🔑 Your Microsoft sign-in expired.</p><button class="btn primary" data-act="reconnect">Reconnect</button>`
+    card.innerHTML = `<h2>2. Sync-Passwort</h2>` + (e instanceof NeedLogin
+      ? `<p class="warn">🔑 Deine Microsoft-Anmeldung ist abgelaufen.</p><button class="btn primary" data-act="reconnect">Neu verbinden</button>`
       : `<p class="bad">⚠️ ${h(e.message)}</p>`);
   }
 }
 
 /* =====================================================================
-   EMAIL (Outlook / Hotmail, read-only)
+   E-MAIL (Outlook / Hotmail, nur lesen)
    ===================================================================== */
 const localDay = iso => isoOf(new Date(iso));
 let currentMail = null;
 function mailProblem(e) {
   const box = $('#maillist') || main;
   box.innerHTML = e instanceof NeedLogin
-    ? `<p class="warn">🔑 Your Microsoft sign-in expired.</p><button class="btn primary" data-act="reconnect">Reconnect</button>`
-    : `<p class="bad">⚠️ ${h(e.message)}</p><p class="small muted">If you connected before email support was added, use "Reconnect" on the Phone & sync page to allow email access.</p>`;
+    ? `<p class="warn">🔑 Deine Microsoft-Anmeldung ist abgelaufen.</p><button class="btn primary" data-act="reconnect">Neu verbinden</button>`
+    : `<p class="bad">⚠️ ${h(e.message)}</p><p class="small muted">Falls du dich verbunden hast, bevor es die E-Mail-Funktion gab: Klicke unter „Handy & Sync" auf „Neu verbinden", um den E-Mail-Zugriff zu erlauben.</p>`;
 }
 async function viewMail(q) {
   if (!state.meta._account) {
-    main.innerHTML = `<div class="page-head"><div><h1>✉️ Email</h1></div></div>
-      <div class="card empty"><div class="big">✉️</div><p>Connect your Microsoft (Hotmail/Outlook) account to search your emails and save them, with attachments, into Lifebook.</p><a class="btn primary" href="#/sync">Set up under Phone & sync</a></div>`;
+    main.innerHTML = `<div class="page-head"><div><h1>✉️ E-Mail</h1></div></div>
+      <div class="card empty"><div class="big">✉️</div><p>Verbinde dein Microsoft-Konto (Hotmail/Outlook), um deine E-Mails zu durchsuchen und sie samt Anhängen in Lifebook zu speichern.</p><a class="btn primary" href="#/sync">Unter „Handy & Sync" einrichten</a></div>`;
     return;
   }
   const s = q.get('q') || '';
   main.innerHTML = `
-    <div class="page-head"><div><h1>✉️ Email</h1><p class="muted">Search your mailbox and save important emails, such as invoices, contracts or confirmations, into <a href="#/topic/documents">Documents & mail</a>. Lifebook only reads; nothing in your mailbox is changed.</p></div></div>
-    <div class="toolbar"><input type="search" id="mailq" placeholder="Search emails, e.g. invoice, Swisscom, insurance…" value="${h(s)}" style="flex:1;min-width:200px"><button class="btn" data-act="mail-search">Search</button></div>
-    <div class="card" id="maillist"><p class="muted small" style="margin:0">Loading emails…</p></div>`;
+    <div class="page-head"><div><h1>✉️ E-Mail</h1><p class="muted">Durchsuche dein Postfach und speichere wichtige E-Mails wie Rechnungen, Verträge oder Bestätigungen unter <a href="#/topic/documents">Dokumente & Post</a>. Lifebook liest nur; in deinem Postfach wird nichts verändert.</p></div></div>
+    <div class="toolbar"><input type="search" id="mailq" placeholder="E-Mails durchsuchen, z.B. Rechnung, Swisscom, Versicherung…" value="${h(s)}" style="flex:1;min-width:200px"><button class="btn" data-act="mail-search">Suchen</button></div>
+    <div class="card" id="maillist"><p class="muted small" style="margin:0">E-Mails werden geladen…</p></div>`;
   $('#mailq').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); go('#/mail?q=' + encodeURIComponent(ev.target.value)); } };
   try {
     const sel = '$select=id,subject,from,receivedDateTime,hasAttachments,bodyPreview&$top=40';
@@ -2072,13 +2117,13 @@ async function viewMail(q) {
     const box = $('#maillist'); if (!box) return;
     const saved = new Set(entriesOf('documents').map(e => e.data.mailId).filter(Boolean));
     box.innerHTML = list.length ? list.map(m => `<a class="msg-row" href="#/mail/${encodeURIComponent(m.id)}">
-      <div class="msg-top"><b>${h(m.from?.emailAddress?.name || m.from?.emailAddress?.address || '(unknown sender)')}</b><span class="rel">${saved.has(m.id) ? '📥 saved · ' : ''}${m.hasAttachments ? '📎 ' : ''}${fmtDate(localDay(m.receivedDateTime))}</span></div>
-      <div>${h(m.subject || '(no subject)')}</div><div class="small muted msg-prev">${h(m.bodyPreview || '')}</div></a>`).join('')
-      : '<p class="muted" style="margin:0">No emails found.</p>';
+      <div class="msg-top"><b>${h(m.from?.emailAddress?.name || m.from?.emailAddress?.address || '(unbekannter Absender)')}</b><span class="rel">${saved.has(m.id) ? '📥 gespeichert · ' : ''}${m.hasAttachments ? '📎 ' : ''}${fmtDate(localDay(m.receivedDateTime))}</span></div>
+      <div>${h(m.subject || '(kein Betreff)')}</div><div class="small muted msg-prev">${h(m.bodyPreview || '')}</div></a>`).join('')
+      : '<p class="muted" style="margin:0">Keine E-Mails gefunden.</p>';
   } catch (e) { mailProblem(e); }
 }
 async function viewMessage(id) {
-  main.innerHTML = `<div class="page-head"><div><div class="small muted"><a href="#/mail">Email</a></div><h1>Loading…</h1></div></div><div id="maillist"></div>`;
+  main.innerHTML = `<div class="page-head"><div><div class="small muted"><a href="#/mail">E-Mail</a></div><h1>Wird geladen…</h1></div></div><div id="maillist"></div>`;
   try {
     const eid = encodeURIComponent(id);
     const r = await graph(`/me/messages/${eid}?$select=subject,from,toRecipients,receivedDateTime,body,hasAttachments`, { headers: { Prefer: 'outlook.body-content-type="text"' } });
@@ -2093,30 +2138,30 @@ async function viewMessage(id) {
     const from = m.from?.emailAddress || {};
     const existing = entriesOf('documents').find(e => e.data.mailId === id);
     main.innerHTML = `
-      <div class="page-head"><div><div class="small muted"><a href="#/mail">Email</a></div><h1>${h(m.subject || '(no subject)')}</h1>
-        <p class="muted" style="margin:0">From <b>${h(from.name || '')}</b> ${h(from.address ? '<' + from.address + '>' : '')} · ${new Date(m.receivedDateTime).toLocaleString()}</p></div></div>
+      <div class="page-head"><div><div class="small muted"><a href="#/mail">E-Mail</a></div><h1>${h(m.subject || '(kein Betreff)')}</h1>
+        <p class="muted" style="margin:0">Von <b>${h(from.name || '')}</b> ${h(from.address ? '<' + from.address + '>' : '')} · ${new Date(m.receivedDateTime).toLocaleString(LOCALE)}</p></div></div>
       <div class="stack">
         <div class="card form">
-          <h2>📥 Save to Lifebook</h2>
-          ${existing ? `<p class="ok" style="margin:0 0 10px">Already saved: <a href="#/entry/${existing.id}">${h(title(existing))}</a></p>` : ''}
-          <div class="grid2"><label class="field"><span>Save as</span><select id="mailkind">${['Email', 'Invoice', 'Receipt', 'Letter', 'Contract document', 'Certificate', 'Other'].map(k => `<option>${k}</option>`).join('')}</select></label></div>
-          ${atts.length ? `<div class="field"><span>Attachments to save</span>${atts.map(a => `<label class="check"><input type="checkbox" name="matt" value="${h(a.id)}" ${a.isInline ? '' : 'checked'}> ${h(a.name)} <span class="muted small">${fmtSize(a.size || 0)}</span></label>`).join('')}</div>` : ''}
-          <button class="btn primary" data-act="mail-save">📥 Save to Documents & mail</button>
-          <span class="small muted">Afterwards you can add tags or link it to a contract or contact.</span>
+          <h2>📥 In Lifebook speichern</h2>
+          ${existing ? `<p class="ok" style="margin:0 0 10px">Bereits gespeichert: <a href="#/entry/${existing.id}">${h(title(existing))}</a></p>` : ''}
+          <div class="grid2"><label class="field"><span>Speichern als</span><select id="mailkind">${['Email', 'Invoice', 'Receipt', 'Letter', 'Contract document', 'Certificate', 'Other'].map(k => `<option value="${k}">${h(L(k))}</option>`).join('')}</select></label></div>
+          ${atts.length ? `<div class="field"><span>Anhänge speichern</span>${atts.map(a => `<label class="check"><input type="checkbox" name="matt" value="${h(a.id)}" ${a.isInline ? '' : 'checked'}> ${h(a.name)} <span class="muted small">${fmtSize(a.size || 0)}</span></label>`).join('')}</div>` : ''}
+          <button class="btn primary" data-act="mail-save">📥 Unter Dokumente & Post speichern</button>
+          <span class="small muted">Danach kannst du Tags hinzufügen oder die E-Mail mit einem Vertrag oder Kontakt verknüpfen.</span>
         </div>
-        <div class="card"><div class="mail-body">${h((m.body?.content || '').trim() || '(empty)')}</div></div>
+        <div class="card"><div class="mail-body">${h((m.body?.content || '').trim() || '(leer)')}</div></div>
       </div>`;
   } catch (e) { mailProblem(e); }
 }
 async function saveMail() {
   if (!currentMail) return;
   const { id, m } = currentMail, eid = encodeURIComponent(id);
-  const btn = $('[data-act=mail-save]'); if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  const btn = $('[data-act=mail-save]'); if (btn) { btn.disabled = true; btn.textContent = 'Wird gespeichert…'; }
   try {
     const now = new Date().toISOString(), from = m.from?.emailAddress || {};
     const e = {
       id: uid(), topic: 'documents', tags: ['email'], related: [], created: now, updated: now,
-      data: { title: m.subject || '(no subject)', kind: $('#mailkind').value, from: [from.name, from.address && `<${from.address}>`].filter(Boolean).join(' '), date: localDay(m.receivedDateTime), status: 'Open', dueDate: '', amount: '', body: (m.body?.content || '').trim().slice(0, 200000), notes: '', mailId: id },
+      data: { title: m.subject || '(kein Betreff)', kind: $('#mailkind').value, from: [from.name, from.address && `<${from.address}>`].filter(Boolean).join(' '), date: localDay(m.receivedDateTime), status: 'Open', dueDate: '', amount: '', body: (m.body?.content || '').trim().slice(0, 200000), notes: '', mailId: id },
     };
     let n = 0;
     for (const aid of [...document.querySelectorAll('input[name=matt]:checked')].map(i => i.value)) {
@@ -2125,19 +2170,19 @@ async function saveMail() {
       const a = await ra.json();
       if (!a.contentBytes) continue;
       const blob = new Blob([fromB64(a.contentBytes)], { type: a.contentType || 'application/octet-stream' });
-      await dbPut('files', { id: uid(), entryId: e.id, name: a.name || 'attachment', type: blob.type, size: blob.size, blob, added: now });
+      await dbPut('files', { id: uid(), entryId: e.id, name: a.name || 'anhang', type: blob.type, size: blob.size, blob, added: now });
       n++;
     }
     e.fileCount = n;
     state.entries.push(e);
     await saveEntry(e);
-    toast(`Saved${n ? ` with ${n} attachment${n > 1 ? 's' : ''}` : ''} ✓`);
+    toast(`Gespeichert${n ? ` mit ${n} ${n > 1 ? 'Anhängen' : 'Anhang'}` : ''} ✓`);
     go('#/edit/' + e.id + '?sec=more');
-  } catch (err) { toast(err.message); if (btn) { btn.disabled = false; btn.textContent = '📥 Save to Documents & mail'; } }
+  } catch (err) { toast(err.message); if (btn) { btn.disabled = false; btn.textContent = '📥 Unter Dokumente & Post speichern'; } }
 }
 
 /* =====================================================================
-   CONTACTS — import a .vcf file exported from the iPhone Contacts app
+   KONTAKTE: .vcf-Datei aus der iPhone-App „Kontakte" importieren
    ===================================================================== */
 function parseVCF(text) {
   const lines = text.replace(/\r?\n[ \t]/g, '').split(/\r?\n/);
@@ -2166,13 +2211,13 @@ function parseVCF(text) {
 async function importVCF(file) {
   try {
     const cards = parseVCF(await file.text());
-    if (!cards.length) return toast('No contacts found in this file');
+    if (!cards.length) return toast('In dieser Datei wurden keine Kontakte gefunden');
     let added = 0, updated = 0;
     const now = new Date().toISOString();
     for (const c of cards) {
       const name = c.fn || c.n; if (!name) continue;
       const phone = (c.tel.find(t => t.cell) || c.tel[0])?.v || '';
-      const extra = [...c.tel.filter(t => t.v !== phone).map(t => 'Phone: ' + t.v), ...c.email.slice(1).map(x => 'Email: ' + x)].join('\n');
+      const extra = [...c.tel.filter(t => t.v !== phone).map(t => 'Telefon: ' + t.v), ...c.email.slice(1).map(x => 'E-Mail: ' + x)].join('\n');
       const data = { name, relation: '', company: c.org || '', phone, email: c.email[0] || '', address: c.adr || '', birthday: c.bday || '', notes: [c.note, extra].filter(Boolean).join('\n') };
       const existing = entriesOf('contacts').find(e => (e.data.name || '').toLowerCase() === name.toLowerCase());
       if (existing) {
@@ -2184,13 +2229,13 @@ async function importVCF(file) {
         state.entries.push(e); await saveEntry(e); added++;
       }
     }
-    toast(`${added} contacts added, ${updated} updated ✓`);
+    toast(`${added} Kontakte hinzugefügt, ${updated} ergänzt ✓`);
     route();
-  } catch (e) { toast('Could not read the file: ' + e.message); }
+  } catch (e) { toast('Die Datei konnte nicht gelesen werden: ' + e.message); }
 }
 
 /* =====================================================================
-   PHOTOS — reduce large images before storing
+   FOTOS: grosse Bilder vor dem Speichern verkleinern
    ===================================================================== */
 async function shrinkImage(file) {
   if (!/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type) || file.size < 1500000) return file;
@@ -2208,7 +2253,7 @@ async function shrinkImage(file) {
 async function addPendingFiles(input) {
   const files = [...input.files]; input.value = '';
   const big = files.filter(f => f.size > 25 * 1048576 && !f.type.startsWith('image/'));
-  if (big.length) toast('Files over 25 MB were skipped');
+  if (big.length) toast('Dateien über 25 MB wurden übersprungen');
   for (const f of files) {
     if (big.includes(f)) continue;
     const s = await shrinkImage(f);
@@ -2217,7 +2262,7 @@ async function addPendingFiles(input) {
   renderFileList();
 }
 
-/* home-screen icon for iPhone */
+/* Symbol für den iPhone-Home-Bildschirm */
 (function touchIcon() {
   try {
     const c = document.createElement('canvas'); c.width = c.height = 180;
@@ -2230,7 +2275,7 @@ async function addPendingFiles(input) {
   } catch { }
 })();
 
-/* convert data saved by the first version of "About me" */
+/* Daten aus der ersten Version von „Über mich" umwandeln */
 function migrate(e) {
   if (e.topic !== 'profile') return false;
   const d = e.data; let changed = false;
@@ -2244,14 +2289,14 @@ function migrate(e) {
     d.ids = [...(d.ids || []), ...old.map(([k, type]) => ({ type, number: '', expiry: d[k] }))];
     old.forEach(([k]) => delete d[k]); changed = true;
   }
-  if (d.address && !d.street) { d.notes = [d.notes, 'Old address: ' + d.address].filter(Boolean).join('\n'); delete d.address; changed = true; }
+  if (d.address && !d.street) { d.notes = [d.notes, 'Alte Adresse: ' + d.address].filter(Boolean).join('\n'); delete d.address; changed = true; }
   if (d.clothingSize && !d.sizeTops) { d.sizeTops = d.clothingSize; delete d.clothingSize; changed = true; }
   if (d.shoeSize && !d.sizeShoes) { d.sizeShoes = d.shoeSize; delete d.shoeSize; changed = true; }
   return changed;
 }
 
 /* ===================================================================== */
-/* Global events                                                          */
+/* Globale Ereignisse                                                     */
 /* ===================================================================== */
 document.addEventListener('click', async ev => {
   if (!ev.target.closest('.addr-lookup')) { const box = $('#addrres'); if (box && !box.hidden && !ev.target.closest('[data-act=addr-check]')) box.hidden = true; }
@@ -2265,7 +2310,7 @@ document.addEventListener('click', async ev => {
   else if (act === 'ms-connect') { const v = $('#s_client')?.value.trim(); if (v) await setMeta('_clientId', v); signIn(); }
   else if (act === 'ms-disconnect') disconnectMicrosoft();
   else if (act === 'key-set') setSyncPassword();
-  else if (act === 'key-forget') { if (await ask('Forget the sync password on this device? Your data stays here; you will need the password to sync again.')) { await setMeta('_syncKey', null); viewSync(); renderSyncChip(); } }
+  else if (act === 'key-forget') { if (await ask('Sync-Passwort auf diesem Gerät vergessen? Deine Daten bleiben hier; zum Synchronisieren brauchst du dann das Passwort wieder.', 'Vergessen')) { await setMeta('_syncKey', null); viewSync(); renderSyncChip(); } }
   else if (act === 'sync-now') syncNow().then(() => { if (currentRoute === '#/sync') viewSync(); });
   else if (act === 'mail-save') saveMail();
   else if (act === 'mail-search') go('#/mail?q=' + encodeURIComponent($('#mailq').value));
@@ -2284,7 +2329,7 @@ document.addEventListener('click', async ev => {
     p.data.insuranceSkip = [...s]; await saveEntry(p); route();
   }
   else if (act === 'copy-req') copyText((state.meta.requests || [])[+el.dataset.i]?.text || '');
-  else if (act === 'del-req') { if (await ask('Delete this saved topic plan?')) { const r = [...(state.meta.requests || [])]; r.splice(+el.dataset.i, 1); await setMeta('requests', r); viewRequest(); } }
+  else if (act === 'del-req') { if (await ask('Diesen Themen-Plan löschen?', 'Löschen')) { const r = [...(state.meta.requests || [])]; r.splice(+el.dataset.i, 1); await setMeta('requests', r); viewRequest(); } }
   else if (act === 'export') exportBackup();
   else if (act === 'import-merge') doImport(false);
   else if (act === 'import-replace') doImport(true);
@@ -2318,12 +2363,12 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape' && document.activeElement?.id === 'addrq') showAddrResults([]);
   if (ev.key === 's' && (ev.ctrlKey || ev.metaKey) && $('#entryform')) { ev.preventDefault(); saveForm(); }
 });
-/* In-app navigation. The address bar is updated when allowed, but the app never
-   depends on it, because some embedded previews reload when the address changes. */
+/* Navigation innerhalb der App. Die Adresszeile wird nachgeführt, wenn erlaubt,
+   aber die App hängt nie davon ab (manche eingebettete Vorschauen laden sonst neu). */
 let currentRoute = location.hash || '#/';
 function go(href, replace = false) {
   currentRoute = href || '#/';
-  try { history[replace ? 'replaceState' : 'pushState'](null, '', currentRoute); } catch { /* not allowed here */ }
+  try { history[replace ? 'replaceState' : 'pushState'](null, '', currentRoute); } catch { /* hier nicht erlaubt */ }
   route();
 }
 document.addEventListener('click', ev => {
@@ -2339,14 +2384,14 @@ window.addEventListener('hashchange', () => { if (location.hash !== currentRoute
 /* ===================================================================== */
 /* Start                                                                  */
 /* ===================================================================== */
-/* show problems on screen instead of failing silently */
+/* Probleme sichtbar anzeigen statt still zu scheitern */
 function showError(err) {
   console.error(err);
   const msg = err?.stack || err?.message || String(err);
   let box = $('#errbox');
   if (!box) { box = document.createElement('div'); box.id = 'errbox'; box.className = 'card'; box.style.cssText = 'border-color:var(--danger);margin-bottom:16px'; main.prepend(box); }
-  box.innerHTML = `<div class="sec-head"><h2 class="bad">⚠️ Something went wrong</h2><button class="btn sm" onclick="location.reload()">Reload</button></div>
-    <p class="small muted">Your saved data is not affected. If this keeps happening, copy this text and send it to Claude:</p><pre class="out">${h(msg)}</pre>`;
+  box.innerHTML = `<div class="sec-head"><h2 class="bad">⚠️ Da ist etwas schiefgelaufen</h2><button class="btn sm" onclick="location.reload()">Neu laden</button></div>
+    <p class="small muted">Deine gespeicherten Daten sind nicht betroffen. Falls das wiederholt passiert, kopiere diesen Text und schick ihn Claude:</p><pre class="out">${h(msg)}</pre>`;
 }
 window.addEventListener('error', ev => showError(ev.error || ev.message));
 window.addEventListener('unhandledrejection', ev => showError(ev.reason));
@@ -2358,7 +2403,7 @@ window.addEventListener('unhandledrejection', ev => showError(ev.reason));
   } catch (err) {
     db = null;
     document.body.insertAdjacentHTML('afterbegin', `<div class="notice" style="position:sticky;top:0;z-index:30;border-radius:0;background:var(--danger-soft);color:var(--danger)">
-      <span>⚠️ <b>Preview mode: nothing is saved.</b> This window blocks browser storage. Open <b>lifebook.html</b> directly in Edge, Chrome or Firefox (double-click the file) to keep your data.</span></div>`);
+      <span>⚠️ <b>Vorschau-Modus: Es wird nichts gespeichert.</b> Dieses Fenster blockiert den Browser-Speicher. Öffne Lifebook direkt in Chrome, Edge, Safari oder Firefox, damit deine Daten erhalten bleiben.</span></div>`);
   }
   state.entries = await dbAll('entries');
   state.meta = Object.fromEntries((await dbAll('meta')).map(m => [m.key, m.value]));
@@ -2366,7 +2411,7 @@ window.addEventListener('unhandledrejection', ev => showError(ev.reason));
   if (db) await handleRedirect();
   route();
   if (state.meta._account && !tokenUsable() && canSignIn()) {
-    // sign-in expired (Microsoft limits it to 24 h for web apps): renew silently once, without a prompt
+    // Anmeldung abgelaufen (Microsoft erlaubt bei Web-Apps max. 24 Std.): einmal still erneuern, ohne Rückfrage
     const last = +localStorage.getItem('lb_silent') || 0;
     if (Date.now() - last > 10 * 60 * 1000) { localStorage.setItem('lb_silent', Date.now()); return signIn('none'); }
     setSync('login');
